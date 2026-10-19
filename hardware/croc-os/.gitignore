@@ -1,0 +1,34 @@
+# ---- CREDENTIALS: never commit these ----
+secrets.h
+config.h
+*.env
+.env
+.env.*
+!.env.example
+wifi_secrets.h
+api_keys.h
+
+# Private key material
+*.pem
+*.key
+*.crt
+*.der
+
+# Arduino / PlatformIO build output
+build/
+.pio/
+.vscode/
+*.elf
+*.bin
+*.hex
+*.map
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor scratch
+*.bak
+*.swp
+*~

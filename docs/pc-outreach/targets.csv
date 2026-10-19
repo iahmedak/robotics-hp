@@ -1,0 +1,49 @@
+brand,lane,category,target_role,outreach_route,email_subject,status,notes
+Intel,lane1,ai-pc,developer relations,developer contact page,"local llm numbers",not_sent,need specific Core Ultra model in body
+AMD,lane1,ai-pc,developer relations,developer contact page,"local llm numbers",not_sent,need Ryzen AI series in body
+Qualcomm,lane1,ai-pc,snapdragon x relations,press page,"local llm numbers",not_sent,need X Elite or X Plus in body
+ASUS,lane1,ai-pc,creator relations,creator program,"local llm numbers",not_sent,ProArt or Zenbook
+Lenovo,lane1,ai-pc,thinkpad relations,thinkpad program,"local llm numbers",not_sent,P16 or Yoga Pro
+HP,lane1,ai-pc,Z and OMEN relations,press page,"local llm numbers",not_sent,ZBook or OMEN
+Dell,lane1,ai-pc,precision relations,press page,"local llm numbers",not_sent,Precision 3581 or XPS
+Acer,lane1,ai-pc,swift conceptd relations,press page,"local llm numbers",not_sent,Swift 14 or ConceptD
+Samsung,lane1,ai-pc,galaxy book relations,press page,"local llm numbers",not_sent,Galaxy Book4 Pro
+MSI,lane1,ai-pc,creator relations,creator program,"local llm numbers",not_sent,Creator 16 or Vector
+Gigabyte,lane1,ai-pc,aero relations,press page,"local llm numbers",not_sent,AERO laptop
+NVIDIA,lane2,robotics,isaac sim relations,isaac forums,"isaac sim on consumer hardware",not_sent,post on forums too
+Universal Robots,lane2,robotics,dev relations,ur community,"ur sim on a workstation",not_sent,URDF validation
+Franka Emika,lane2,robotics,dev relations,community forum,"franka sim validation",not_sent,
+Dobot,lane2,robotics,dev relations,community forum,"dobot sim accuracy",not_sent,
+Unitree,lane2,robotics,dev relations,contact page,"unitree go2 sim setup",not_sent,Go2 sim to real telemetry
+Robotnik,lane2,robotics,dev relations,contact page,"mobile manipulator sim",not_sent,
+UFactory,lane2,robotics,dev relations,contact page,"xarm collision meshes",not_sent,
+AgileX,lane2,robotics,dev relations,contact page,"agilex arm in sim",not_sent,
+RealMan,lane2,robotics,dev relations,contact page,"rm65 sim accuracy",not_sent,
+Elephant Robotics,lane2,robotics,dev relations,contact page,"mycobot sim notes",not_sent,
+Sim tooling vendors,lane2,robotics,docs team,dev discourse,"validation writeup",not_sent,generic - personalize fully
+Dell Precision,lane3,workstation,product relations,press page,"precision workstation benchmarks",not_sent,
+HP Z,lane3,workstation,product relations,press page,"z workstation benchmarks",not_sent,
+ASUS ProArt,lane3,workstation,creator relations,creator program,"proart gpu benchmarks",not_sent,
+MSI Creator,lane3,workstation,creator relations,creator program,"creator gpu numbers",not_sent,
+Lenovo P-series,lane3,workstation,thinkpad relations,thinkpad program,"p-series gpu benchmarks",not_sent,
+Gigabyte,lane3,gpu,product relations,contact page,"gpu sustained numbers",not_sent,
+Zotac,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+PNY,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+Gainward,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+Inno3D,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+Palit,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+PowerColor,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+Sapphire,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+ASRock,lane3,gpu,product relations,contact page,"gpu benchmarks",not_sent,
+Razer Blade,lane3,workstation,product relations,press page,"blade gpu numbers",not_sent,
+Alienware,lane3,workstation,product relations,press page,"x15 x17 benchmarks",not_sent,
+Origin PC,lane3,workstation,product relations,contact page,"workstation benchmarks",not_sent,
+Maingear,lane3,workstation,product relations,contact page,"workstation benchmarks",not_sent,
+System76,lane3,workstation,product relations,contact page,"pro laptop benchmarks",not_sent,measure on Linux
+Tuxedo,lane3,workstation,product relations,contact page,"tuxedo benchmarks",not_sent,measure on Linux
+Framework,lane3,workstation,product relations,contact page,"framework laptop numbers",not_sent,
+Back Market,lane4,refurb,sales inbox,contact page,"refurb workstation availability",not_sent,highest odds
+Renewed,lane4,refurb,sales inbox,contact page,"refurb workstation availability",not_sent,
+eBay certified refurb,lane4,refurb,seller relations,contact page,"refurb workstation availability",not_sent,
+Recompute,lane4,refurb,sales inbox,contact page,"refurb workstation availability",not_sent,
+Newegg Business,lane4,refurb,business sales,contact page,"refurb workstation availability",not_sent,

@@ -1,0 +1,8 @@
+﻿# Real secrets - use examples instead
+include/secrets.h
+include/config.h
+
+# Build artifacts
+*.o
+*.elf
+*.bin
