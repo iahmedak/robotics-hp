@@ -1,0 +1,285 @@
+---
+import Base from '../layouts/Base.astro';
+import seedRaw from '../data/parts.seed.json';
+import { validateCategories, validateVendors, validateSeed, type CanonicalPart } from '../lib/schema';
+import categoriesRaw from '../data/categories.json';
+import vendorsRaw from '../data/vendors.json';
+import { MAX_RECORDS, STORAGE_KEY } from '../lib/inventory';
+
+const c = validateCategories(categoriesRaw);
+const v = validateVendors(vendorsRaw, c.data ?? []);
+const s = validateSeed(seedRaw, c.data ?? [], v.data ?? []);
+if (!c.ok || !v.ok || !s.ok) throw new Error('data files invalid');
+
+const parts = s.data as CanonicalPart[];
+// Client-side inventory needs to resolve a partId back to a human label.
+const labels = Object.fromEntries(parts.map((p) => [p.id, p.canonicalName]));
+---
+
+<Base title="My inventory — PROJECTdir">
+  <div class="wrap">
+    <h1>My inventory</h1>
+    <p class="lede">
+      A shortlist of what you want and what you already own. Stored in this browser only
+      — no account, no server, nothing sent anywhere.
+    </p>
+
+    <p class="privacy">
+      Clearing site data or opening this in a different browser will not show these. Use
+      <strong>Export</strong> to keep a copy.
+    </p>
+
+    <div class="bar" id="bar" hidden>
+      <p class="counts" id="counts" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="export">Export</button>
+        <button type="button" class="btn ghost" id="importBtn">Import</button>
+        <button type="button" class="btn ghost" id="print">Print checklist</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden />
+      </div>
+    </div>
+
+    <div class="empty" id="empty">
+      <p><strong>Nothing saved yet.</strong></p>
+      <p>
+        Open any part page and choose <em>Want</em> or <em>Own</em>. Search for something
+        like <a href="/part/nema-17-stepper/">NEMA 17 stepper</a> to try it.
+      </p>
+    </div>
+
+    <div id="list" hidden></div>
+
+    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+  </div>
+</Base>
+
+<style>
+  .wrap { max-width: 760px; padding-top: 40px; padding-bottom: 40px; }
+  h1 { font: 700 clamp(1.8rem,4.5vw,2.5rem)/1.1 var(--pd-serif); margin: 0 0 12px; letter-spacing: -0.015em; }
+  .lede { color: var(--pd-fg-muted); max-width: 58ch; margin: 0 0 14px; }
+  .privacy { font-size: 0.86rem; color: var(--pd-fg-muted); border-left: 2px solid var(--pd-hairline); padding-left: 12px; max-width: 62ch; margin: 0 0 24px; }
+  .privacy strong { color: var(--pd-fg); }
+  a { color: var(--pd-accent); }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--pd-hairline); padding-bottom: 12px; margin-bottom: 8px; }
+  .counts { margin: 0; font: 600 0.86rem var(--pd-mono); color: var(--pd-fg-muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { min-height: 44px; padding: 10px 15px; border-radius: 8px; font: 600 0.86rem var(--pd-sans); cursor: pointer; border: 1px solid var(--pd-border); background: var(--pd-surface); color: var(--pd-fg); }
+  .btn.ghost:hover { border-color: var(--pd-fg); }
+  .empty { padding: 34px 0; color: var(--pd-fg-muted); max-width: 56ch; }
+  .empty strong { color: var(--pd-fg); }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: start; padding: 16px 0; border-bottom: 1px solid var(--pd-hairline); }
+  .name { font: 600 1.02rem var(--pd-serif); color: var(--pd-fg); text-decoration: none; }
+  .name:hover { text-decoration: underline; }
+  .meta { grid-column: 1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .meta label { font: 600 0.72rem var(--pd-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--pd-fg-muted); }
+  .qty { width: 74px; min-height: 44px; font: inherit; padding: 8px 10px; border: 1px solid var(--pd-border); border-radius: 8px; background: var(--pd-surface); color: var(--pd-fg); }
+  .note { width: 100%; min-height: 44px; font: inherit; padding: 9px 11px; margin-top: 8px; border: 1px solid var(--pd-border); border-radius: 8px; background: var(--pd-surface); color: var(--pd-fg); resize: vertical; }
+  .rm { min-height: 44px; min-width: 44px; padding: 8px 12px; border: 1px solid var(--pd-border); border-radius: 8px; background: transparent; color: var(--pd-fg-muted); font: 600 0.82rem var(--pd-sans); cursor: pointer; }
+  .rm:hover { color: var(--pd-warn); border-color: var(--pd-warn); }
+  .msg { font: 0.86rem var(--pd-mono); color: var(--pd-fg-muted); min-height: 1.4em; margin: 18px 0 0; }
+  .msg.error { color: var(--pd-warn); }
+  @media print {
+    .bar, .rm, .msg, .privacy { display: none !important; }
+    body { background: #fff; color: #000; }
+    .wrap { max-width: none; }
+    .row { break-inside: avoid; border-bottom: 1px solid #999; }
+    .name, .meta label { color: #000; }
+  }
+</style>
+
+<script type="application/json" id="inv-data" set:html={JSON.stringify({ labels, maxRecords: MAX_RECORDS }).replace(/</g, '\u003c')} />
+
+<script>
+  // Plain bundled module. define:vars would imply is:inline and leak raw import
+  // statements into the HTML; data arrives via the JSON tag above instead.
+  import {
+    loadInventory, saveInventory, addRecord, removeRecord, summarise,
+    serializeForExport, parseImport, type Intent, type InventoryRecord,
+  } from '../lib/inventory';
+
+  interface InvPayload {
+    labels: Record<string, string>;
+    maxRecords: number;
+  }
+
+  const { labels, maxRecords } = JSON.parse(
+    document.getElementById('inv-data')!.textContent!,
+  ) as InvPayload;
+
+  // localStorage already matches the StorageLike shape, but wrap it so the
+  // module never touches a global directly and a blocked store degrades quietly.
+  const store = {
+    getItem: (k: string): string | null => {
+      try { return localStorage.getItem(k); } catch { return null; }
+    },
+    setItem: (k: string, v: string): void => { localStorage.setItem(k, v); },
+  };
+
+  let inv = loadInventory(store);
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
+    const el = document.getElementById(id);
+    if (!el) throw new Error('inventory.astro: missing #' + id);
+    return el as T;
+  };
+  const labelFor = (partId: string): string => labels[partId] ?? partId;
+  const asIntent = (v: string): Intent => (v === 'owned' ? 'owned' : 'wanted');
+
+  function say(text: string, isError = false): void {
+    const m = $('msg');
+    m.textContent = text;
+    m.classList.toggle('error', isError);
+  }
+
+  function persist(): boolean {
+    if (!saveInventory(store, inv)) {
+      say('Could not save — this browser is blocking local storage.', true);
+      return false;
+    }
+    return true;
+  }
+
+  function update(r: InventoryRecord, intent: Intent, quantity: number, note: string): void {
+    const res = addRecord(inv, r.partId, intent, undefined, quantity, note);
+    if (!res.ok) {
+      say('Inventory is full (500 items). Remove something first.', true);
+      return;
+    }
+    inv = res.inventory;
+    if (persist()) { render(); say('Saved.'); }
+  }
+
+  function render(): void {
+    const list = $('list');
+    const empty = $('empty');
+    const bar = $('bar');
+    const s = summarise(inv);
+
+    empty.hidden = s.total > 0;
+    bar.hidden = s.total === 0;
+    list.hidden = s.total === 0;
+
+    if (s.total) {
+      $('counts').textContent =
+        `${s.total} item${s.total === 1 ? '' : 's'} · ${s.wanted} wanted · ${s.owned} owned` +
+        (s.total >= maxRecords ? ' · at the 500 limit' : '');
+    }
+
+    list.textContent = '';
+    const sorted = [...inv.records].sort((a, b) =>
+      a.intent === b.intent
+        ? labelFor(a.partId).localeCompare(labelFor(b.partId))
+        : a.intent === 'owned' ? 1 : -1,
+    );
+
+    for (const r of sorted) {
+      const li = document.createElement('div');
+      li.className = 'row';
+
+      const link = document.createElement('a');
+      link.className = 'name';
+      link.href = '/part/' + encodeURIComponent(r.partId) + '/';
+      link.textContent = labelFor(r.partId);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const intentSel = document.createElement('select');
+      intentSel.id = 'i-' + r.partId;
+      intentSel.className = 'qty';
+      intentSel.setAttribute('aria-label', 'State for ' + labelFor(r.partId));
+      for (const v of ['wanted', 'owned'] as const) {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = v === 'owned' ? 'Own' : 'Want';
+        o.selected = v === r.intent;
+        intentSel.appendChild(o);
+      }
+
+      const intentLabel = document.createElement('label');
+      intentLabel.textContent = 'State';
+      intentLabel.htmlFor = intentSel.id;
+
+      const qty = document.createElement('input');
+      qty.id = 'q-' + r.partId;
+      qty.type = 'number';
+      qty.className = 'qty';
+      qty.min = '1';
+      qty.max = '99999';
+      qty.value = String(r.quantity);
+      qty.setAttribute('aria-label', 'Quantity for ' + labelFor(r.partId));
+
+      const qtyLabel = document.createElement('label');
+      qtyLabel.textContent = 'Qty';
+      qtyLabel.htmlFor = qty.id;
+
+      meta.append(intentLabel, intentSel, qtyLabel, qty);
+
+      const note = document.createElement('input');
+      note.className = 'note';
+      note.value = r.note;
+      note.placeholder = 'Note (optional)';
+      note.maxLength = 500;
+      note.setAttribute('aria-label', 'Note for ' + labelFor(r.partId));
+
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'rm';
+      rm.textContent = 'Remove';
+      rm.setAttribute('aria-label', 'Remove ' + labelFor(r.partId) + ' from inventory');
+
+      intentSel.addEventListener('change', () => {
+        update(r, asIntent(intentSel.value), Number(qty.value) || 1, note.value);
+      });
+      qty.addEventListener('change', () => {
+        update(r, r.intent, Number(qty.value) || 1, note.value);
+      });
+      note.addEventListener('change', () => {
+        update(r, r.intent, r.quantity, note.value);
+      });
+      rm.addEventListener('click', () => {
+        inv = removeRecord(inv, r.partId);
+        persist();
+        render();
+        say('Removed ' + labelFor(r.partId) + '.');
+      });
+
+      li.append(link, rm, meta, note);
+      list.appendChild(li);
+    }
+  }
+
+  $('export').addEventListener('click', () => {
+    const blob = new Blob([serializeForExport(inv)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'projectdir-inventory.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    say('Exported.');
+  });
+
+  $('importBtn').addEventListener('click', () => $<HTMLInputElement>('importFile').click());
+  $<HTMLInputElement>('importFile').addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) return;
+    const next = parseImport(await file.text());
+    if (!next.records.length) { say('That file contained no usable records.', true); return; }
+    // Merge by partId, imported entries win. Never silently discard the list.
+    let merged = inv;
+    for (const r of next.records) {
+      const res = addRecord(merged, r.partId, r.intent, r.updatedAt, r.quantity, r.note);
+      if (res.ok) merged = res.inventory;
+    }
+    inv = merged;
+    persist();
+    render();
+    say(`Imported ${next.records.length} record${next.records.length === 1 ? '' : 's'}.`);
+  });
+
+  $('print').addEventListener('click', () => window.print());
+
+  render();
+</script>

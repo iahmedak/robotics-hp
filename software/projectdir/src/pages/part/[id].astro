@@ -1,0 +1,197 @@
+---
+import Base from '../../layouts/Base.astro';
+import categoriesRaw from '../../data/categories.json';
+import vendorsRaw from '../../data/vendors.json';
+import seedRaw from '../../data/parts.seed.json';
+import {
+  validateCategories, validateVendors, validateSeed,
+  type Category, type CanonicalPart, type Vendor,
+} from '../../lib/schema';
+import SaveButton from '../../components/SaveButton.astro';
+import OfferList from '../../components/OfferList.astro';
+
+/**
+ * One page per canonical part.
+ *
+ * These must exist for every seed part even when no supplier lists the part
+ * online — the URL is meant to be shareable, and a 404 on a part someone has
+ * heard of is worse than an honest "no supplier listed it".
+ */
+export async function getStaticPaths() {
+  const c = validateCategories(categoriesRaw);
+  const v = validateVendors(vendorsRaw, c.data ?? []);
+  const s = validateSeed(seedRaw, c.data ?? [], v.data ?? []);
+  if (!c.ok || !v.ok || !s.ok) throw new Error('data files invalid');
+
+  const bySlug = new Map((v.data as Vendor[]).map((x) => [x.slug, x]));
+  return (s.data as CanonicalPart[]).map((p) => ({
+    params: { id: p.id },
+    props: {
+      part: p,
+      catLabel: (c.data as Category[]).find((x) => x.id === p.category)?.label ?? p.category,
+      sellers: p.vendors
+        .map((slug) => bySlug.get(slug))
+        .filter((x): x is Vendor => Boolean(x))
+        .map((x) => ({ name: x.name, url: x.url, city: x.city, wholesale: x.wholesale })),
+      // OfferList needs whole vendors: slug, platform and url, to build the
+      // search-link fallback when no product could be matched.
+      vendors: v.data as Vendor[],
+    },
+  }));
+}
+
+const { part, catLabel, sellers, vendors } = Astro.props;
+const buyable = sellers.filter((s) => s.url);
+---
+
+<Base title={`${part.canonicalName} — PROJECTdir`} description={`Indian suppliers stocking ${part.canonicalName}.`}>
+  <div class="wrap">
+    <p class="crumb"><a href="/">Search</a> <span aria-hidden="true">/</span> <a href={`/suppliers?cat=${part.category}`}>{catLabel}</a></p>
+
+    <h1>{part.canonicalName}</h1>
+
+    {
+      Object.keys(part.specs).length > 0 && (
+        <dl class="specs">
+          {Object.entries(part.specs).map(([k, v]) => (
+            <div>
+              <dt>{k}</dt>
+              <dd>{String(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+
+    <p class="alias">Also searched as: {part.aliases.join(', ')}</p>
+
+    <h2>{sellers.length} supplier{sellers.length === 1 ? '' : 's'} carry this</h2>
+
+    {
+      sellers.length === 0 && (
+        <div class="none">
+          <p>
+            No supplier lists this part online yet. If you know an Indian supplier that
+            stocks it, <a href="/submit">suggest one</a>.
+          </p>
+        </div>
+      )
+    }
+    <p class="disclaimer">
+      PROJECTdir is not a store and takes no commission. Prices, stock and specs change —
+      confirm on the supplier's own page before buying.
+    </p>
+  </div>
+    <OfferList part={part} vendors={vendors} />
+    <SaveButton partId={part.id} />
+
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 36px;
+    padding-bottom: 40px;
+    max-width: 760px;
+  }
+  .crumb {
+    font: 0.82rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    margin: 0 0 14px;
+  }
+  .crumb a {
+    color: var(--pd-accent);
+  }
+  h1 {
+    font: 700 clamp(1.8rem, 4.5vw, 2.6rem) / 1.12 var(--pd-serif);
+    margin: 0 0 18px;
+    letter-spacing: -0.015em;
+  }
+  h2 {
+    font: 700 1.4rem var(--pd-serif);
+    margin: 30px 0 14px;
+  }
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+    gap: 1px;
+    background: var(--pd-hairline);
+    border: 1px solid var(--pd-hairline);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 0 0 16px;
+  }
+  .specs > div {
+    background: var(--pd-surface);
+    padding: 12px 14px;
+  }
+  .specs dt {
+    font: 0.72rem var(--pd-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--pd-fg-muted);
+  }
+  .specs dd {
+    margin: 4px 0 0;
+    font-weight: 600;
+  }
+  .alias {
+    font: 0.82rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+  }
+  .offers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .offers a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 52px;
+    padding: 10px 16px;
+    border: 1px solid var(--pd-border);
+    border-radius: 8px;
+    background: var(--pd-surface);
+    color: var(--pd-fg);
+    text-decoration: none;
+  }
+  .offers a:hover {
+    border-color: var(--pd-accent);
+    background: var(--pd-accent-soft);
+  }
+  .vname {
+    font-weight: 600;
+  }
+  .meta {
+    font: 0.8rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+  }
+  .badge.moq {
+    font: 0.72rem var(--pd-mono);
+    color: var(--pd-warn);
+    border: 1px solid var(--pd-warn);
+    background: var(--pd-warn-bg);
+    border-radius: 4px;
+    padding: 2px 7px;
+  }
+  .arrow {
+    color: var(--pd-accent);
+    margin-left: auto;
+  }
+  .none {
+    border: 1px dashed var(--pd-border);
+    border-radius: 8px;
+    padding: 24px;
+    background: var(--pd-surface);
+  }
+  .disclaimer {
+    margin-top: 32px;
+    font: 0.8rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    border-top: 1px solid var(--pd-hairline);
+    padding-top: 16px;
+  }
+</style>

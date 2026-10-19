@@ -1,0 +1,196 @@
+﻿---
+import Base from '../layouts/Base.astro';
+import SearchBox from '../components/SearchBox.astro';
+import categoriesRaw from '../data/categories.json';
+import vendorsRaw from '../data/vendors.json';
+import { validateCategories, validateVendors, type Category, type Vendor } from '../lib/schema';
+
+const c = validateCategories(categoriesRaw);
+const v = validateVendors(vendorsRaw, c.data ?? []);
+if (!c.ok) throw new Error(`categories.json invalid:\n - ${c.errors.join('\n - ')}`);
+if (!v.ok) throw new Error(`vendors.json invalid:\n - ${v.errors.join('\n - ')}`);
+
+const categories = c.data as Category[];
+const vendors = v.data as Vendor[];
+
+const searchable = vendors.filter((x) => x.search.enabled);
+const cities = new Set(vendors.map((x) => x.city).filter(Boolean)).size;
+const groups = [...new Set(categories.map((x) => x.group))];
+---
+
+<Base title="PROJECTdir — find robotics parts suppliers in India">
+  <section class="hero" aria-labelledby="page-h1">
+    <div class="wrap">
+      <p class="eyebrow">Community directory · India</p>
+      <h1 id="page-h1">Find where to buy robotics parts in India.</h1>
+      <p class="lede">
+        Type a part once. See which Indian suppliers stock it, grouped so you are not
+        hunting across a dozen shopfronts.
+      </p>
+
+      <dl class="stats">
+        <div><dt>Suppliers</dt><dd>{vendors.length}</dd></div>
+        <div><dt>Searchable now</dt><dd>{searchable.length}</dd></div>
+        <div><dt>Categories</dt><dd>{categories.length}</dd></div>
+        <div><dt>Cities</dt><dd>{cities}</dd></div>
+      </dl>
+
+      <SearchBox categories={categories} />
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="browse" aria-labelledby="browse-h">
+      <h2 id="browse-h">Browse by category</h2>
+      <ul class="cat-list">
+        {
+          groups.map((g) => (
+            <li>
+              <h3>{g}</h3>
+              <ul>
+                {categories
+                  .filter((x) => x.group === g)
+                  .map((x) => (
+                    <li>
+                      <a href={`/suppliers?cat=${x.id}`}>{x.label}</a>
+                    </li>
+                  ))}
+              </ul>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="honesty" aria-labelledby="honesty-h">
+      <h2 id="honesty-h">What this is, and what it is not</h2>
+      <p>
+        PROJECTdir is a <strong>directory</strong>, not a store. It tells you who sells what
+        and where they are, so you can go straight to the right supplier and buy there.
+      </p>
+      <p>
+        We handle no money, take no affiliate commission, and run no ads. Every link out is
+        plain and attributed. Live supplier search is being built next — until then, results
+        come from a curated index and any listing can be corrected by opening a pull request.
+      </p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .hero {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--pd-hairline);
+    background-image:
+      linear-gradient(var(--pd-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--pd-grid-line) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .eyebrow {
+    font: 500 0.82rem var(--pd-mono);
+    color: var(--pd-accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  h1 {
+    font: 700 clamp(2rem, 5vw, 3.1rem) / 1.1 var(--pd-serif);
+    margin: 0 0 14px;
+    max-width: 19ch;
+    letter-spacing: -0.015em;
+  }
+  .lede {
+    max-width: 58ch;
+    color: var(--pd-fg-muted);
+    margin: 0 0 28px;
+    font-size: 1.08rem;
+  }
+
+  /* Rules, not boxes. Stat tiles are the classic dashboard tell and they
+     diluted the typographic character that makes this design work. */
+  .stats {
+    display: flex;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 0 0 30px;
+    border-top: 2px solid var(--pd-fg);
+    border-bottom: 1px solid var(--pd-hairline);
+  }
+  .stats > div {
+    padding: 14px 28px 14px 0;
+    margin-right: 28px;
+    border-right: 1px solid var(--pd-hairline);
+  }
+  .stats > div:last-child {
+    border-right: 0;
+    margin-right: 0;
+  }
+  .stats dt {
+    font: 0.76rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    order: 2;
+  }
+  .stats dd {
+    font: 700 1.9rem/1 var(--pd-serif);
+    margin: 0 0 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .browse {
+    padding: 40px 0;
+  }
+  h2 {
+    font: 700 1.7rem var(--pd-serif);
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .cat-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
+    gap: 24px;
+  }
+  .cat-list h3 {
+    font: 600 0.78rem var(--pd-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pd-fg-muted);
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--pd-hairline);
+  }
+  .cat-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .cat-list a {
+    display: inline-flex;
+    align-items: center;
+    /* 44px, not 34: WCAG 2.5.5 / the spec's stated touch-target floor. */
+    min-height: 44px;
+    color: var(--pd-fg);
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+  .cat-list a:hover {
+    color: var(--pd-accent);
+    text-decoration: underline;
+  }
+
+  .honesty {
+    padding: 36px 0;
+    border-top: 1px solid var(--pd-hairline);
+  }
+  .honesty p {
+    max-width: 64ch;
+    color: var(--pd-fg-muted);
+  }
+  .honesty strong {
+    color: var(--pd-fg);
+  }
+</style>

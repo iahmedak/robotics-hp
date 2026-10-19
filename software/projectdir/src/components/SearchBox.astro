@@ -1,0 +1,529 @@
+---
+/**
+ * The search box.
+ *
+ * This is the most accessibility-sensitive surface in the product: results
+ * arrive from computation *after* the user has typed. Everything here follows
+ * the APG combobox pattern with aria-activedescendant, so DOM focus never has
+ * to leave the input — which is what makes "focus is never stolen" true by
+ * construction rather than by careful handling.
+ */
+import categoriesRaw from '../data/categories.json';
+import vendorsRaw from '../data/vendors.json';
+import seedRaw from '../data/parts.seed.json';
+import { placeholderDataUri } from '../lib/placeholder';
+import { validateCategories, validateVendors, validateSeed, type Category, type CanonicalPart, type Vendor } from '../lib/schema';
+import { seedToResults } from '../lib/search';
+
+const c = validateCategories(categoriesRaw);
+const v = validateVendors(vendorsRaw, c.data ?? []);
+if (!c.ok || !v.ok) throw new Error('data files invalid — see schema validators');
+const s = validateSeed(seedRaw, c.data as Category[], v.data as Vendor[]);
+if (!s.ok) throw new Error(`parts.seed.json invalid:\n - ${s.errors.join('\n - ')}`);
+
+const results = seedToResults(s.data as CanonicalPart[], v.data as Vendor[]);
+
+// Placeholder per part id, computed here so the client never builds SVG.
+const thumbs: Record<string, string> = Object.fromEntries(
+  (s.data as CanonicalPart[]).map((p) => [p.id, placeholderDataUri(p, 88)]),
+);
+
+// The corpus ships to the browser. Phase 4 replaces this with a Worker call;
+// the search functions themselves stay identical.
+const payload = {
+  parts: s.data,
+  results: results.map((r) => ({
+    partId: r.partId,
+    name: r.name,
+    vendor: r.vendor,
+    category: r.category,
+    // specs MUST round-trip. Omitting them crashes identity()'s specBonus,
+    // and they are also what the UI renders under each seller row.
+    specs: r.specs,
+    url: r.url,
+    tier: r.tier,
+    ageMs: r.ageMs,
+    firstParty: r.firstParty,
+  })),
+};
+---
+
+<div class="search" data-search>
+  <label class="lbl" for="q">Search parts</label>
+  <p class="hint" id="q-hint">
+    Try <code>nema17</code>, <code>42bygh</code>, <code>mg995</code> or <code>bearings</code>.
+    Typos are fine.
+  </p>
+
+  <div class="field">
+    <input
+      id="q"
+      type="search"
+      role="combobox"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      aria-expanded="false"
+      aria-controls="q-listbox"
+      aria-describedby="q-hint"
+      aria-autocomplete="list"
+      placeholder="e.g. NEMA 17 stepper"
+    />
+    <span class="spinner" aria-hidden="true" hidden></span>
+  </div>
+
+  <ul id="q-listbox" role="listbox" aria-label="Search results" class="listbox" hidden></ul>
+
+  <!--
+    Debounced so it does not announce on every keystroke. Separate from the
+    listbox because a live region that contains the options themselves would
+    read the entire result set aloud.
+  -->
+  <p class="status" id="q-status" role="status" aria-live="polite"></p>
+
+  <div id="q-results" class="results" aria-busy="false"></div>
+
+  <template id="q-empty">
+    <div class="empty">
+      <h3>Nothing matches that yet</h3>
+      <p>
+        This directory is still being filled in. If you know an Indian supplier that
+        stocks it, <a href="/submit">suggest one</a> and it will be added.
+      </p>
+    </div>
+  </template>
+</div>
+
+<style>
+  .search {
+    position: relative;
+  }
+  .lbl {
+    display: block;
+    font: 600 0.78rem var(--pd-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    color: var(--pd-fg-muted);
+  }
+  .hint {
+    font-size: 0.88rem;
+    color: var(--pd-fg-muted);
+    margin: 0 0 10px;
+  }
+  code {
+    font: 0.9em var(--pd-mono);
+    background: var(--pd-raised);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--pd-fg);
+  }
+  .field {
+    position: relative;
+  }
+  input {
+    width: 100%;
+    min-height: 48px;
+    font: inherit;
+    padding: 12px 14px;
+    border: 1px solid var(--pd-border);
+    border-radius: 8px;
+    background: var(--pd-surface);
+    color: var(--pd-fg);
+  }
+  input::placeholder {
+    color: var(--pd-fg-muted);
+  }
+  .spinner {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--pd-border);
+    border-top-color: var(--pd-accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: translateY(-50%) rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner {
+      animation: none;
+      border-top-color: var(--pd-border);
+    }
+  }
+
+  .status {
+    font: 0.82rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    margin: 10px 0 0;
+    min-height: 1.2em;
+  }
+
+  .listbox {
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--pd-surface);
+    border: 1px solid var(--pd-border);
+    border-radius: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  }
+  .listbox[hidden] {
+    display: none;
+  }
+  .listbox li {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .listbox li[aria-selected='true'] {
+    background: var(--pd-accent-soft);
+    outline: 2px solid var(--pd-accent);
+    outline-offset: -2px;
+  }
+  .listbox .opt-name {
+    font-weight: 600;
+  }
+  .listbox .opt-meta {
+    margin-left: auto;
+    font: 0.78rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+  }
+
+  .results {
+    margin-top: 22px;
+  }
+  .group {
+    border: 1px solid var(--pd-border);
+    border-radius: 10px;
+    background: var(--pd-surface);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .group h3 {
+    font: 700 1.2rem var(--pd-serif);
+    margin: 0 0 4px;
+  }
+  .group .cat {
+    font: 0.78rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 12px;
+  }
+  .offers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .offers a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 44px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--pd-fg);
+    text-decoration: none;
+    border: 1px solid var(--pd-hairline);
+  }
+  .offers a:hover {
+    border-color: var(--pd-accent);
+    background: var(--pd-accent-soft);
+  }
+  .offers .vname {
+    font-weight: 600;
+  }
+  .offers .arrow {
+    color: var(--pd-accent);
+    margin-left: auto;
+  }
+  .specs {
+    font: 0.78rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+  }
+  .ungrouped-note {
+    font: 0.8rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    margin: 0 0 8px;
+  }
+  .empty {
+    text-align: center;
+    padding: 40px 24px;
+    border: 1px dashed var(--pd-border);
+    border-radius: 10px;
+    background: var(--pd-surface);
+  }
+  .empty h3 {
+    font: 700 1.35rem var(--pd-serif);
+    margin: 0 0 8px;
+  }
+  .empty a {
+    color: var(--pd-accent);
+  }
+</style>
+
+<script>
+  import { search } from '../lib/search';
+  import { escapeHtml } from '../lib/html';
+
+  interface Offer {
+    partId: string | null; name: string; vendor: string;
+    category: string; url: string; tier: 1 | 2 | 3; ageMs: number | null;
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-search]');
+  const payloadEl = document.getElementById('corpus');
+  if (root && payloadEl) {
+    const corpus = JSON.parse(payloadEl.textContent ?? '{}') as {
+      parts: Parameters<typeof search>[1];
+      results: Offer[];
+    };
+    startSearch(root, corpus.parts, corpus.results as never[]);
+  }
+
+  function startSearch(
+    root: HTMLElement,
+    parts: Parameters<typeof search>[1],
+    results: Offer[],
+  ) {
+    const input = root.querySelector<HTMLInputElement>('#q')!;
+    const listbox = root.querySelector<HTMLUListElement>('#q-listbox')!;
+    const status = root.querySelector<HTMLParagraphElement>('#q-status')!;
+    const out = root.querySelector<HTMLElement>('#q-results')!;
+    const spinner = root.querySelector<HTMLElement>('.spinner')!;
+    const emptyTpl = document.getElementById('q-empty') as HTMLTemplateElement;
+
+    const THUMBS: Record<string, string> = JSON.parse(
+      document.getElementById('thumbs')?.textContent ?? '{}',
+    );
+    const placeholderFor = (part: unknown) =>
+      part ? (THUMBS[(part as { id: string }).id] ?? '') : '';
+
+    let options: { id: string; label: string; meta: string; url: string; partId?: string; placeholder: string; thumb?: string }[] = [];
+    let active = -1;
+    let lastQuery = '';
+
+    const announce = debounce((text: string) => {
+      // Live region only ever carries a short summary — never the results.
+      status.textContent = text;
+    }, 500);
+
+    function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number) {
+      let t: number | undefined;
+      return (...a: A) => {
+        if (t !== undefined) clearTimeout(t);
+        t = window.setTimeout(() => fn(...a), ms);
+      };
+    }
+
+    const esc = escapeHtml;
+
+    function close() {
+      listbox.hidden = true;
+      listbox.innerHTML = '';
+      options = [];
+      active = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    }
+
+    function setActive(i: number) {
+      if (!options.length) return;
+      active = (i + options.length) % options.length;
+      listbox.querySelectorAll<HTMLLIElement>('li').forEach((el, idx) => {
+        el.setAttribute('aria-selected', String(idx === active));
+      });
+      const el = listbox.children[active] as HTMLElement | undefined;
+      if (el) {
+        input.setAttribute('aria-activedescendant', el.id);
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function commit(i: number) {
+      const opt = options[i];
+      if (!opt) return;
+      // Navigating to the part page keeps focus behaviour simple and gives the
+      // part a shareable, stable URL.
+      window.location.href = opt.url;
+    }
+
+    function renderSuggestions(q: string) {
+      const found = search(q, parts, results as never[]);
+      const flat: typeof options = [];
+
+      for (const l of found.listings) {
+        const name = l.canonical?.canonicalName ?? 'Other matches';
+        const n = l.results.length;
+        flat.push({
+          id: `opt-${flat.length}`,
+          label: name,
+          meta: `${n} supplier${n === 1 ? '' : 's'}`,
+          url: l.canonical ? `/part/${l.canonical.id}` : '/suppliers',
+          partId: l.canonical?.id,
+          // Results render immediately with this. A real photograph is swapped
+          // in afterwards, so results are never waiting on the offers Worker.
+          placeholder: placeholderFor(l.canonical),
+        });
+      }
+
+      options = flat;
+      active = -1;
+      listbox.innerHTML = options
+        .map(
+          (o) => `<li id="${o.id}" role="option" aria-selected="false" data-part-id="${esc(o.partId ?? '')}">
+            <img class="result-thumb" src="${esc(o.thumb || o.placeholder || '')}" alt="" width="44" height="44"
+                 loading="lazy" decoding="async" referrerpolicy="no-referrer"
+                 data-placeholder="${esc(o.placeholder || '')}"
+                 onerror="this.src=this.dataset.placeholder;this.onerror=null;" />
+            <span class="opt-name">${esc(o.label)}</span>
+            <span class="opt-meta">${esc(o.meta)}</span>
+          </li>`,
+        )
+        .join('');
+
+      const show = q.length > 0 && options.length > 0;
+      listbox.hidden = !show;
+      input.setAttribute('aria-expanded', String(show));
+      input.removeAttribute('aria-activedescendant');
+
+      return found;
+    }
+
+    function renderResults(found: ReturnType<typeof search>) {
+      if (!found.listings.length && !found.matchesWithoutOffers.length) {
+        out.innerHTML = emptyTpl.innerHTML;
+        return;
+      }
+
+      const html = found.listings
+        .map((l) => {
+          const cat = l.canonical?.category ?? '';
+          const title = l.canonical?.canonicalName ?? 'Other matches';
+          const specs = l.canonical?.specs ?? {};
+          const specLine = Object.entries(specs)
+            .slice(0, 3)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(' · ');
+
+          const offers = l.results
+            .map(
+              (r) => `<li><a href="/part/${l.canonical?.id ?? ''}">
+                  <span class="vname">${esc(r.vendor)}</span>
+                  ${specLine ? `<span class="specs">${esc(specLine)}</span>` : ''}
+                  <span class="arrow" aria-hidden="true">→</span>
+                  <span class="sr-only">(opens the ${esc(title)} listing)</span>
+                </a></li>`,
+            )
+            .join('');
+
+          return `<article class="group">
+            <h3>${esc(title)}</h3>
+            <p class="cat">${esc(cat)}</p>
+            <ul class="offers">${offers}</ul>
+          </article>`;
+        })
+        .join('');
+
+      const orphanNote = found.matchesWithoutOffers.length
+        ? `<p class="ungrouped-note">${found.matchesWithoutOffers.length} matching part(s) have no supplier listing online yet.</p>`
+        : '';
+
+      out.innerHTML = orphanNote + html;
+    }
+
+    const run = debounce((q: string) => {
+      spinner.hidden = false;
+      out.setAttribute('aria-busy', 'true');
+
+      const found = renderSuggestions(q);
+      renderResults(found);
+
+      const parts = found.listings.length;
+      const offers = found.listings.reduce((n, l) => n + l.results.length, 0);
+      announce(
+        q.length === 0
+          ? ''
+          : parts === 0
+            ? `No parts match ${q}`
+            : `${parts} part${parts === 1 ? '' : 's'}, ${offers} supplier offer${offers === 1 ? '' : 's'}`,
+      );
+
+      spinner.hidden = true;
+      out.setAttribute('aria-busy', 'false');
+    }, 250);
+
+    input.addEventListener('input', () => {
+      if (input.value.trim() === lastQuery) return;
+      lastQuery = input.value.trim();
+      if (!lastQuery) {
+        close();
+        out.innerHTML = '';
+        status.textContent = '';
+        return;
+      }
+      run(lastQuery);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (listbox.hidden) return;
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setActive(active + 1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setActive(active - 1);
+          break;
+        case 'Home':
+          e.preventDefault();
+          setActive(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          setActive(options.length - 1);
+          break;
+        case 'Enter':
+          if (active >= 0) {
+            e.preventDefault();
+            commit(active);
+          }
+          break;
+        case 'Escape':
+          // Dismiss WITHOUT losing focus — focus stays in the input.
+          e.preventDefault();
+          close();
+          break;
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!root.contains(e.target as Node)) close();
+    });
+  }
+</script>
+
+<script type="application/json" id="thumbs" set:html={JSON.stringify(thumbs)} />
+<script type="application/json" id="corpus" set:html={JSON.stringify(payload)} />

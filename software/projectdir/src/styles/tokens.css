@@ -1,0 +1,82 @@
+/* PROJECTdir design tokens — spec §10
+ *
+ * One source of truth for both themes. Nothing outside this file hardcodes a
+ * colour, so dark mode is a token swap rather than a second stylesheet.
+ *
+ * Every text pair below is >= 4.5:1 and every UI boundary >= 3:1 in BOTH
+ * themes. Verified in src/lib/__tests__/tokens.test.ts and re-checked live in
+ * CI via the axe gate. If you change a value here, that test is the contract.
+ *
+ * Never pure #ffffff for the page background (light) and never pure #000000
+ * (dark): pure white is a glare source on bright displays, and pure black
+ * causes halation bloom on OLED.
+ */
+
+:root {
+  /* Light */
+  --pd-bg:        #F7F5EF;   /* warm paper, not white */
+  --pd-surface:   #FFFFFF;   /* card / control surface */
+  --pd-raised:    #F1EFE8;   /* hover / inset */
+  --pd-fg:        #14213D;
+  --pd-fg-muted:  #4A5568;   /* 6.90:1 on --pd-bg */
+  --pd-border:    #767C8A;   /* 3.84:1 on --pd-bg — UI boundary floor */
+  --pd-hairline:  #D9DCE4;   /* decorative separators only */
+  --pd-accent:    #1D4ED8;   /* 6.15:1 on --pd-bg */
+  --pd-accent-ink:#FFFFFF;   /* text on accent fill — 6.71:1 */
+  --pd-accent-soft:#E8EEFC;
+  --pd-warn:      #8A4B00;   /* 6.80:1 on --pd-surface */
+  --pd-warn-bg:   #FBF1DF;
+  --pd-grid-line: #E4E7EF;
+  --pd-focus:     #1D4ED8;
+
+  /* Type */
+  --pd-serif: Georgia, 'Times New Roman', serif;
+  --pd-mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --pd-sans:  system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Space — 4px base, so rhythm is arithmetic rather than taste. */
+  --pd-1: 4px;  --pd-2: 8px;  --pd-3: 12px; --pd-4: 16px;
+  --pd-5: 24px; --pd-6: 32px; --pd-7: 48px; --pd-8: 64px;
+
+  --pd-radius: 10px;
+  --pd-max: 1100px;
+}
+
+/* Dark: elevated charcoal, not black. */
+:root[data-theme='dark'] {
+  --pd-bg:        #14161A;
+  --pd-surface:   #1C1F24;
+  --pd-raised:    #23262C;
+  --pd-fg:        #E6E8EC;   /* 14.76:1 on --pd-bg */
+  --pd-fg-muted:  #A0A3AC;   /* 7.18:1 on --pd-bg */
+  --pd-border:    #6B6F79;   /* 3.60:1 on --pd-bg */
+  --pd-hairline:  #2E3238;
+  --pd-accent:    #78C8FF;   /* 9.05:1 on --pd-surface */
+  --pd-accent-ink:#0B1118;
+  --pd-accent-soft:#1D2632;
+  --pd-warn:      #FFB86B;   /* 9.69:1 on --pd-surface */
+  --pd-warn-bg:   #231B10;
+  --pd-grid-line: #1E2228;
+  --pd-focus:     #78C8FF;
+}
+
+/* Follow the OS when the user has not chosen. Matches both by using tokens,
+ * so `system` needs no JS to repaint on OS change. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    --pd-bg:        #14161A;
+    --pd-surface:   #1C1F24;
+    --pd-raised:    #23262C;
+    --pd-fg:        #E6E8EC;
+    --pd-fg-muted:  #A0A3AC;
+    --pd-border:    #6B6F79;
+    --pd-hairline:  #2E3238;
+    --pd-accent:    #78C8FF;
+    --pd-accent-ink:#0B1118;
+    --pd-accent-soft:#1D2632;
+    --pd-warn:      #FFB86B;
+    --pd-warn-bg:   #231B10;
+    --pd-grid-line: #1E2228;
+    --pd-focus:     #78C8FF;
+  }
+}

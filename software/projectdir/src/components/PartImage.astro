@@ -1,0 +1,73 @@
+---
+import type { CanonicalPart } from '../lib/schema';
+import { placeholderDataUri } from '../lib/placeholder';
+
+/**
+ * An image that cannot break.
+ *
+ * Product photographs are hotlinked from supplier CDNs, and those CDNs can
+ * block hotlinking, rotate URLs, or 403 entirely. Every failure mode here
+ * ends at the generated placeholder rather than a broken-image glyph.
+ *
+ * When there is no src at all the placeholder renders directly from the
+ * server, so the fallback does not depend on JavaScript running.
+ */
+interface Props {
+  src: string | null;
+  part: CanonicalPart;
+  alt?: string;
+  width?: number;
+  height?: number;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+}
+
+const {
+  src,
+  part,
+  alt,
+  width = 100,
+  height = 100,
+  class: className = '',
+  loading = 'lazy',
+} = Astro.props;
+
+const fallback = placeholderDataUri(part, 400);
+const label = alt ?? part.canonicalName;
+---
+
+{
+  src ? (
+    <img
+      class={className}
+      src={src}
+      alt={label}
+      width={width}
+      height={height}
+      loading={loading}
+      decoding="async"
+      /* Do not leak the referring page to supplier CDNs. */
+      referrerpolicy="no-referrer"
+      onerror={`this.onerror=null;this.src=${JSON.stringify(fallback)};this.dataset.fellback='1';`}
+    />
+  ) : (
+    <img
+      class={className}
+      src={fallback}
+      alt={label}
+      width={width}
+      height={height}
+      loading={loading}
+      decoding="async"
+    />
+  )
+}
+
+<style>
+  img {
+    display: block;
+    object-fit: cover;
+    background: var(--pd-raised);
+    border-radius: 8px;
+  }
+</style>

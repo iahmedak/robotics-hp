@@ -1,0 +1,107 @@
+---
+import Base from '../layouts/Base.astro';
+import categoriesRaw from '../data/categories.json';
+import vendorsRaw from '../data/vendors.json';
+import seedRaw from '../data/parts.seed.json';
+import { validateCategories, validateVendors, validateSeed, type Category, type CanonicalPart, type Vendor } from '../lib/schema';
+
+const c = validateCategories(categoriesRaw);
+const v = validateVendors(vendorsRaw, c.data ?? []);
+const s = validateSeed(seedRaw, c.data ?? [], v.data ?? []);
+if (!c.ok || !v.ok || !s.ok) throw new Error('data files invalid');
+
+const vendors = v.data as Vendor[];
+const parts = s.data as CanonicalPart[];
+const searchable = vendors.filter((x) => x.search.enabled);
+---
+
+<Base title="About — PROJECTdir">
+  <div class="wrap">
+    <h1>How this directory works</h1>
+
+    <section>
+      <h2>What it is</h2>
+      <p>
+        A <strong>directory</strong>, not a store. It answers one question well: if you
+        know the part you need, which Indian suppliers actually stock it? You get a
+        shareable page per part listing every supplier found, and you buy from them
+        directly.
+      </p>
+    </section>
+
+    <section>
+      <h2>What it is not</h2>
+      <p>
+        We handle no money, hold no stock, take no affiliate commission and run no ads.
+        Every link out is plain and attributed. Prices, availability and specifications
+        change constantly — <strong>always confirm on the supplier's own page</strong>
+        before buying.
+      </p>
+    </section>
+
+    <section>
+      <h2>How parts are matched</h2>
+      <p>
+        A part can be called many things: <code>nema17</code>, <code>NEMA 17</code>,
+        <code>42bygh</code>. Those all resolve to one entry through an alias list, because
+        no string-similarity metric can know they are the same object. Misspellings are
+        tolerated — but a part number never crosses one. <code>nema 17</code> will never
+        match <code>nema 23</code>, because the digits carry the identity.
+      </p>
+      <p>
+        When a search matches something we have no canonical entry for, it is shown as an
+        ungrouped result rather than hidden. <strong>Nothing is silently dropped.</strong>
+      </p>
+    </section>
+
+    <section>
+      <h2>Current state</h2>
+      <ul class="stats-list">
+        <li><strong>{vendors.length}</strong> suppliers listed</li>
+        <li><strong>{searchable.length}</strong> searchable via live query (rest arrive in a later release)</li>
+        <li><strong>{(c.data as Category[]).length}</strong> part categories</li>
+        <li><strong>{parts.length}</strong> canonical parts</li>
+      </ul>
+      <p>
+        Live per-vendor search is not switched on yet. Results today come from a curated
+        index that vendors and contributors correct by pull request.
+      </p>
+    </section>
+
+    <section>
+      <h2>Correcting a listing</h2>
+      <p>
+        Every listing is one JSON entry. To fix or add one, open a pull request against
+        <code>src/data/vendors.json</code>. Changes that fail validation — an unknown
+        category, a supplier with no stated purchasing constraint — are rejected
+        automatically.
+      </p>
+      <p><a href="/submit">Suggest a supplier →</a></p>
+    </section>
+
+    <section>
+      <h2>Accessibility</h2>
+      <p>
+        Target is WCAG 2.1 AA and it is enforced, not aspirational: colour contrast is
+        asserted from the design tokens in both themes at build time, the search box
+        implements the full combobox keyboard contract, and every interactive target is
+        at least 44×44 CSS pixels. Light and dark themes are both first-class — neither
+        is a compromise of the other.
+      </p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .wrap { max-width: 720px; padding-top: 40px; padding-bottom: 40px; }
+  h1 { font: 700 clamp(1.9rem,4.5vw,2.8rem)/1.1 var(--pd-serif); margin: 0 0 24px; letter-spacing: -0.015em; }
+  section { margin-bottom: 32px; }
+  h2 { font: 700 1.35rem var(--pd-serif); margin: 0 0 10px; }
+  p { color: var(--pd-fg-muted); max-width: 62ch; }
+  strong { color: var(--pd-fg); }
+  a { color: var(--pd-accent); }
+  code { font: 0.9em var(--pd-mono); background: var(--pd-raised); padding: 1px 5px; border-radius: 3px; color: var(--pd-fg); }
+  .stats-list { list-style: none; margin: 0 0 14px; padding: 0; }
+  .stats-list li { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--pd-hairline); color: var(--pd-fg-muted); }
+  .stats-list strong { font: 700 1.2rem var(--pd-serif); color: var(--pd-accent); min-width: 2.5ch; }
+</style>

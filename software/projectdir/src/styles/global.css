@@ -1,0 +1,96 @@
+@import './tokens.css';
+
+/* Tailwind v4 maps its theme onto our tokens, so utilities and hand-written
+ * CSS stay on one vocabulary instead of drifting into two colour systems. */
+@theme {
+  --color-bg:         var(--pd-bg);
+  --color-surface:    var(--pd-surface);
+  --color-raised:     var(--pd-raised);
+  --color-fg:         var(--pd-fg);
+  --color-fg-muted:   var(--pd-fg-muted);
+  --color-border:     var(--pd-border);
+  --color-hairline:   var(--pd-hairline);
+  --color-accent:     var(--pd-accent);
+  --color-accent-ink: var(--pd-accent-ink);
+  --color-accent-soft:var(--pd-accent-soft);
+  --color-warn:       var(--pd-warn);
+  --color-warn-bg:    var(--pd-warn-bg);
+
+  --font-sans: var(--pd-sans);
+  --font-serif:var(--pd-serif);
+  --font-mono: var(--pd-mono);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/*
+ * The UA stylesheet's `[hidden] { display: none }` loses to ANY author rule
+ * that sets `display`, however innocuous — `.bar { display: flex }` is enough
+ * to make a `hidden` element stay visible. Toggling `.hidden` from script is
+ * used throughout, so the attribute has to win unconditionally.
+ */
+[hidden] { display: none !important; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--pd-bg);
+  color: var(--pd-fg);
+  font: 1.0625rem/1.6 var(--pd-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus everywhere. Never `outline: none` without a replacement —
+   WCAG 2.4.7. */
+:focus-visible {
+  outline: 3px solid var(--pd-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Screen-reader-only. For text that must be announced but never seen.
+   WCAG 2.4.6 / 4.1.2 — e.g. "opens in a new tab" on outbound links. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard users must be able to skip the nav to the content. The target
+   needs tabindex="-1" or focus stays on the link and the browser only
+   scrolls — that was a real bug found in review. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 12px 16px;
+  background: var(--pd-fg);
+  color: var(--pd-bg);
+  border-radius: 6px;
+  font: 600 0.9rem var(--pd-mono);
+}
+.skip-link:focus { left: 8px; }
+
+.wrap {
+  max-width: var(--pd-max);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

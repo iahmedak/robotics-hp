@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROJECTdir — Robotics parts suppliers directory</title>
+<meta name="description" content="A community-maintained directory of Indian suppliers for robotics parts: motors, servos, sensors, controllers, batteries and more. No ads, no affiliate links.">
+<script>
+/* Pre-paint theme: must run before first paint to avoid a flash of the wrong theme. */
+(function(){
+  try{
+    var t = localStorage.getItem('projectdir.theme') || 'system';
+    document.documentElement.dataset.theme = t;
+  }catch(e){}
+})();
+</script>
+<style>
+/* ── Tokens ───────────────────────────────────────────────────────────────
+   One source of truth for both themes. Nothing below this block hardcodes a
+   colour, so dark mode is a token swap rather than a second stylesheet.     */
+:root{
+  --paper:#F7F5EF; --card:#FFFFFF; --raised:#F1EFE8;
+  --ink:#14213D; --muted:#4A5568; --line:#767C8A; --hairline:#D9DCE4;
+  --accent:#1D4ED8; --accent-ink:#FFFFFF; --soft:#E8EEFC;
+  --warn:#8A4B00; --warn-bg:#FBF1DF; --warn-line:#C9A66B;
+  --grid-line:#E4E7EF; --focus:#1D4ED8;
+  --serif:Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+:root[data-theme="dark"]{
+  --paper:#14161A; --card:#1C1F24; --raised:#23262C;
+  --ink:#E6E8EC; --muted:#A0A3AC; --line:#6B6F79; --hairline:#2E3238;
+  --accent:#78C8FF; --accent-ink:#0B1118; --soft:#1D2632;
+  --warn:#FFB86B; --warn-bg:#231B10; --warn-line:#6B5227;
+  --grid-line:#1E2228; --focus:#78C8FF;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]):not([data-theme="dark"]){
+    --paper:#14161A; --card:#1C1F24; --raised:#23262C;
+    --ink:#E6E8EC; --muted:#A0A3AC; --line:#6B6F79; --hairline:#2E3238;
+    --accent:#78C8FF; --accent-ink:#0B1118; --soft:#1D2632;
+    --warn:#FFB86B; --warn-bg:#231B10; --warn-line:#6B5227;
+    --grid-line:#1E2228; --focus:#78C8FF;
+  }
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:1.0625rem/1.6 var(--sans)}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+
+/* Visible focus everywhere. Never `outline:none` without a replacement. */
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
+
+/* Screen-reader-only utility. Used for text that must be announced but not seen. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+.skip{position:absolute;left:-9999px;top:8px;background:var(--ink);color:var(--paper);
+  padding:12px 16px;border-radius:6px;z-index:10;font:600 .9rem var(--mono);
+  display:inline-flex;align-items:center;min-height:44px}
+.skip:focus{left:8px}
+
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+header.site{border-bottom:2px solid var(--ink);background:var(--paper)}
+header.site .wrap{display:flex;justify-content:space-between;align-items:center;
+  min-height:68px;gap:16px;flex-wrap:wrap}
+.brand{font:700 1.3rem var(--serif);color:var(--ink);text-decoration:none;letter-spacing:-.01em;
+  display:inline-flex;align-items:center;min-height:44px}
+.brand span{color:var(--accent)}
+nav ul{display:flex;align-items:center;gap:4px;list-style:none;margin:0;padding:0}
+nav a{font:500 .88rem var(--mono);color:var(--ink);text-decoration:none;display:inline-flex;
+  align-items:center;padding:10px 12px;min-height:44px;border-radius:6px}
+nav a:hover{background:var(--raised)}
+
+/* Theme control */
+.themes{display:flex;gap:2px;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--card)}
+.themes button{font:500 .75rem var(--mono);color:var(--muted);background:none;border:0;
+  border-radius:999px;padding:6px 12px;min-height:34px;cursor:pointer}
+.themes button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.themes button:hover:not([aria-pressed="true"]){color:var(--ink)}
+
+/* Reflow: at 320px the nav links + theme group overflow to ~444px, which forces
+   horizontal scrolling (WCAG 1.4.10). Stack the header and let the group wrap. */
+@media(max-width:560px){
+  header.site .wrap{flex-direction:column;align-items:flex-start;gap:6px;
+    padding-top:12px;padding-bottom:12px}
+  nav{width:100%}
+  nav ul{flex-wrap:wrap;gap:2px}
+  nav a{padding:8px 10px;font-size:.84rem}
+  .themes{width:100%;justify-content:space-between}
+  .themes button{flex:1;min-height:44px}
+}
+
+/* ── Hero + search: one block, because search IS the product ───────────── */
+.hero{padding:48px 0 40px;
+  background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);
+  background-size:32px 32px;
+  border-bottom:1px solid var(--hairline)}
+.eyebrow{font:500 .82rem var(--mono);color:var(--accent);letter-spacing:.08em;
+  text-transform:uppercase;margin:0 0 14px}
+h1{font:700 clamp(2rem,5vw,3.1rem)/1.1 var(--serif);margin:0 0 14px;max-width:19ch;
+  letter-spacing:-.015em}
+.lede{max-width:58ch;color:var(--muted);margin:0 0 28px;font-size:1.08rem}
+
+/* Stat strip: rules, not boxes. This is the differentiated half of the design. */
+.stats{display:flex;gap:0;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none;
+  border-top:2px solid var(--ink);border-bottom:1px solid var(--hairline)}
+.stats li{padding:14px 28px 14px 0;margin-right:28px;border-right:1px solid var(--hairline)}
+.stats li:last-child{border-right:0;margin-right:0}
+.stats b{display:block;font:700 1.9rem/1 var(--serif);font-variant-numeric:tabular-nums}
+.stats span{font:.76rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+/* ── Filters ───────────────────────────────────────────────────────────── */
+label.lbl,.legend{display:block;font:600 .78rem var(--mono);text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:8px;color:var(--muted);padding:0}
+.searchrow{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:22px}
+@media(max-width:700px){.searchrow{grid-template-columns:1fr}}
+input[type=search],select{width:100%;min-height:48px;font:inherit;padding:10px 14px;
+  border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+input[type=search]::placeholder{color:var(--muted)}
+fieldset{border:0;margin:0;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:8px 16px;border:1px solid var(--line);border-radius:999px;
+  background:var(--card);color:var(--ink);font:500 .92rem var(--sans);cursor:pointer}
+.chip:hover{background:var(--soft)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  flex-wrap:wrap;margin-top:20px}
+.check{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;color:var(--ink)}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+.btn{min-height:44px;padding:8px 18px;border:1px solid var(--line);border-radius:8px;
+  background:var(--card);color:var(--ink);font:600 .92rem var(--sans);cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover{background:var(--raised)}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* ── Results ───────────────────────────────────────────────────────────── */
+main{padding-bottom:56px}
+.count{font:600 .92rem var(--mono);color:var(--muted);margin:28px 0 16px}
+/* min() stops the 310px floor from forcing a track wider than the container at 320px */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(310px,100%),1fr));gap:18px;
+  list-style:none;margin:0;padding:0}
+.vendor{background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:20px;display:flex;flex-direction:column;gap:10px;height:100%;
+  transition:border-color .12s ease}
+.vendor:hover{border-color:var(--ink)}
+.vendor h3{font:700 1.28rem var(--serif);margin:0;letter-spacing:-.01em}
+.meta{font:.82rem var(--mono);color:var(--muted)}
+.vendor p{margin:0;color:var(--muted);flex:1;font-size:.98rem}
+/* Tags are capped: a wall of ten is noise, not information. */
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.tags li{font:.76rem var(--mono);background:var(--soft);border-radius:4px;padding:3px 8px;
+  color:var(--ink)}
+.tags li.more{background:none;color:var(--muted);padding:3px 4px}
+.badge{font:.74rem var(--mono);color:var(--warn);align-self:flex-start}
+.visit{font-weight:600;color:var(--accent);min-height:44px;display:inline-flex;
+  align-items:center;gap:6px;text-decoration:none}
+.visit:hover{text-decoration:underline}
+.visit:focus-visible{text-decoration:underline}
+
+/* ── States ────────────────────────────────────────────────────────────── */
+.empty{text-align:center;padding:48px 24px;border:1px dashed var(--line);border-radius:10px;
+  background:var(--card)}
+.empty[hidden]{display:none}
+.empty h3{font:700 1.4rem var(--serif);margin:0 0 8px}
+
+/* Sample-data note: informative, not an emergency. Was a full amber alert,
+   which made it the loudest element on the page after the h1. */
+.note{border-left:3px solid var(--line);padding:2px 0 2px 16px;margin:0 0 32px;
+  color:var(--muted);font-size:.95rem;max-width:62ch}
+.note strong{color:var(--ink)}
+
+section.info{padding:36px 0;border-top:1px solid var(--hairline)}
+h2{font:700 1.7rem var(--serif);margin:0 0 12px;letter-spacing:-.01em}
+section.info p{max-width:64ch;color:var(--muted)}
+section.info p strong{color:var(--ink)}
+pre{background:var(--card);border:1px solid var(--hairline);border-radius:8px;
+  padding:16px;overflow-x:auto;font:.82rem/1.6 var(--mono);color:var(--ink);max-width:100%}
+code{font:.9em var(--mono);background:var(--raised);padding:1px 5px;border-radius:3px;color:var(--ink)}
+pre code{background:none;padding:0}
+
+footer{border-top:2px solid var(--ink);padding:26px 0;font:.85rem var(--mono);color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<a class="skip" href="#directory">Skip to supplier directory</a>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#main">PROJECT<span>dir</span></a>
+    <nav aria-label="Main">
+      <ul>
+        <li><a href="#directory">Directory</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contribute">Add a supplier</a></li>
+        <li>
+          <div class="themes" role="group" aria-label="Colour theme">
+            <button type="button" data-theme-set="system" aria-pressed="false">Auto</button>
+            <button type="button" data-theme-set="light" aria-pressed="true">Light</button>
+            <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+
+  <!-- Search lives in the hero. It is the product; it should not be two scrolls away. -->
+  <section class="hero" aria-labelledby="h1">
+    <div class="wrap">
+      <p class="eyebrow">Community directory · India</p>
+      <h1 id="h1">Find where to buy robotics parts in India.</h1>
+      <p class="lede">Search every supplier at once. Pick parts you need and see who stocks them all.</p>
+
+      <ul class="stats" aria-label="Directory statistics">
+        <li><b id="s-vendors">0</b><span>Suppliers</span></li>
+        <li><b id="s-cats">0</b><span>Categories</span></li>
+        <li><b id="s-cities">0</b><span>Cities</span></li>
+      </ul>
+
+      <form id="filters" role="search" novalidate>
+        <div class="searchrow">
+          <div>
+            <label class="lbl" for="q">Search</label>
+            <input id="q" type="search" placeholder="Name, city or category, e.g. servo Pune" autocomplete="off">
+          </div>
+          <div>
+            <label class="lbl" for="aud">I am a</label>
+            <select id="aud">
+              <option value="">Anyone</option>
+              <option value="student">Student / hobbyist</option>
+              <option value="startup">Startup / maker</option>
+              <option value="integrator">Integrator / industry</option>
+            </select>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend class="legend">Categories — select several to see suppliers stocking all of them</legend>
+          <div class="chips" id="chips"></div>
+        </fieldset>
+
+        <div class="toolbar">
+          <label class="check" for="pan"><input type="checkbox" id="pan"> Ships across India only</label>
+          <button type="button" class="btn" id="reset">Clear all filters</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <p class="note"><strong>Sample data.</strong> These listings are a starter set and not all are verified yet. Check each supplier's own site before relying on it.</p>
+
+    <!-- tabindex="-1" so the skip link actually moves FOCUS here, not just scroll. -->
+    <section id="directory" tabindex="-1" aria-label="Supplier results">
+      <p class="count" id="count" role="status" aria-live="polite"></p>
+      <ul class="grid" id="grid"></ul>
+    </section>
+
+    <div class="empty" id="empty" hidden>
+      <h3>No supplier stocks that combination</h3>
+      <p>Try removing a category, or <a href="#contribute">suggest a supplier</a> we are missing.</p>
+      <button class="btn primary" type="button" id="reset2">Clear all filters</button>
+    </div>
+
+    <section class="info" id="about" aria-labelledby="about-h">
+      <h2 id="about-h">About</h2>
+      <p>PROJECTdir is a directory of suppliers, not a store. It tells you <strong>who sells what and where they are</strong>, so you can go straight to the right shop. Every link out is clearly marked, we take no affiliate commission, and we run no ads.</p>
+    </section>
+
+    <section class="info" id="contribute" aria-labelledby="c-h">
+      <h2 id="c-h">Add or correct a supplier</h2>
+      <p>Each listing is one entry in the <code>vendors</code> data. Copy an entry, change the fields, and send it as a pull request.</p>
+      <pre><code>{ "name": "Example Robotics", "url": "https://example.com", "city": "Pune",
+  "categories": ["servos","sensors"], "audiences": ["student","startup"],
+  "panIndia": true, "blurb": "One honest sentence.", "verified": "2026-10" }</code></pre>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>PROJECTdir · community maintained</span>
+    <span>No ads · no affiliate links · not affiliated with any supplier</span>
+  </div>
+</footer>
+
+<script type="application/json" id="data">
+{
+  "categories": [
+    {"id":"motors","label":"Motors & drivers"},
+    {"id":"servos","label":"Servos"},
+    {"id":"sensors","label":"Sensors"},
+    {"id":"controllers","label":"Microcontrollers & boards"},
+    {"id":"power","label":"Batteries & power"},
+    {"id":"chassis","label":"Chassis & wheels"},
+    {"id":"printing","label":"3D printing"},
+    {"id":"drones","label":"Drones & FPV"},
+    {"id":"vision","label":"Cameras & LiDAR"},
+    {"id":"tools","label":"Tools & kits"}
+  ],
+  "vendors": [
+   {"name":"Robu.in","url":"https://robu.in","city":"Pune","categories":["motors","servos","sensors","controllers","power","chassis","printing","drones","tools"],"audiences":["student","startup"],"panIndia":true,"blurb":"Broad electronics and robotics catalogue with kits and drone parts.","verified":null},
+   {"name":"Robocraze","url":"https://robocraze.com","city":"Bengaluru","categories":["motors","servos","sensors","controllers","power","tools","printing"],"audiences":["student","startup"],"panIndia":true,"blurb":"Robotics and electronics components plus learning kits.","verified":null},
+   {"name":"ThinkRobotics","url":"https://thinkrobotics.com","city":"Bengaluru","categories":["controllers","sensors","vision","motors","servos"],"audiences":["startup","integrator"],"panIndia":true,"blurb":"Boards, sensors and robotics modules for builders and teams.","verified":null},
+   {"name":"Sunrom Electronics","url":"https://www.sunrom.com","city":"Ahmedabad","categories":["sensors","controllers","motors","power"],"audiences":["student","startup"],"panIndia":true,"blurb":"Long-running electronics supplier with a wide module range.","verified":null},
+   {"name":"Robokits India","url":"https://robokits.co.in","city":"","categories":["motors","servos","chassis","sensors","controllers","tools"],"audiences":["student","startup"],"panIndia":true,"blurb":"Robotics kits, motors and chassis parts.","verified":null}
+  ]
+}
+</script>
+
+<script>
+(function(){
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const $ = id => document.getElementById(id);
+  const catLabel = Object.fromEntries(D.categories.map(c=>[c.id,c.label]));
+  const selected = new Set();
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MAX_TAGS = 4; // Past four, a category list stops informing and starts decorating.
+
+  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* ── Theme ───────────────────────────────────────────────────────────── */
+  function applyTheme(t){
+    document.documentElement.dataset.theme = t;
+    try{ localStorage.setItem('projectdir.theme', t); }catch(e){}
+    document.querySelectorAll('[data-theme-set]').forEach(b=>
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
+  }
+  document.querySelectorAll('[data-theme-set]').forEach(b=>
+    b.addEventListener('click', ()=>applyTheme(b.dataset.themeSet)));
+  let initial = 'system';
+  try{ initial = localStorage.getItem('projectdir.theme') || 'system'; }catch(e){}
+  document.querySelectorAll('[data-theme-set]').forEach(b=>
+    b.setAttribute('aria-pressed', String(b.dataset.themeSet === initial)));
+
+  /* ── Stat counters: resolve instantly when motion is reduced ─────────── */
+  function countUp(el,to){
+    if(reduce||to===0){el.textContent=to;return}
+    let n=0; const step=Math.max(1,Math.ceil(to/20));
+    const t=setInterval(()=>{n=Math.min(to,n+step);el.textContent=n;if(n>=to)clearInterval(t)},40);
+  }
+  const cities = new Set(D.vendors.map(v=>v.city).filter(Boolean));
+  countUp($('s-vendors'),D.vendors.length);
+  countUp($('s-cats'),D.categories.length);
+  countUp($('s-cities'),cities.size);
+
+  /* ── Chips ───────────────────────────────────────────────────────────── */
+  $('chips').innerHTML = D.categories.map(c=>
+    `<button type="button" class="chip" aria-pressed="false" data-id="${c.id}">${esc(c.label)}</button>`).join('');
+  $('chips').addEventListener('click',e=>{
+    const b=e.target.closest('.chip'); if(!b) return;
+    const id=b.dataset.id;
+    selected.has(id)?selected.delete(id):selected.add(id);
+    b.setAttribute('aria-pressed',selected.has(id));
+    render();
+  });
+
+  /* ── Render ──────────────────────────────────────────────────────────── */
+  function render(){
+    const q=$('q').value.trim().toLowerCase();
+    const aud=$('aud').value, pan=$('pan').checked;
+    const list=D.vendors.filter(v=>{
+      if(pan && !v.panIndia) return false;
+      if(aud && !v.audiences.includes(aud)) return false;
+      // Intersect: every selected category must be stocked.
+      for(const id of selected) if(!v.categories.includes(id)) return false;
+      if(q){
+        const hay=(v.name+' '+v.city+' '+v.blurb+' '+v.categories.map(c=>catLabel[c]).join(' ')).toLowerCase();
+        if(!q.split(/\s+/).every(w=>hay.includes(w))) return false;
+      }
+      return true;
+    }).sort((a,b)=>a.name.localeCompare(b.name));
+
+    $('grid').innerHTML = list.map(v=>{
+      const shown=v.categories.slice(0,MAX_TAGS);
+      const rest=v.categories.length-shown.length;
+      const tags = shown.map(c=>`<li>${esc(catLabel[c]||c)}</li>`).join('')
+        + (rest>0?`<li class="more">+${rest} more</li>`:'');
+      return `<li><article class="vendor">
+        <h3>${esc(v.name)}</h3>
+        <div class="meta">${v.city?esc(v.city):'Online'}${v.panIndia?' · Ships across India':''}</div>
+        <p>${esc(v.blurb)}</p>
+        <ul class="tags" aria-label="Categories: ${v.categories.length}">${tags}</ul>
+        ${v.verified?'':'<span class="badge">Not yet verified</span>'}
+        <a class="visit" href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">Visit ${esc(v.name)}<span aria-hidden="true">&nbsp;&rarr;</span><span class="sr-only"> (opens in a new tab)</span></a>
+      </article></li>`;
+    }).join('');
+
+    $('empty').hidden = list.length>0;
+    $('count').textContent = list.length===1 ? '1 supplier matches' : list.length+' suppliers match';
+  }
+
+  function reset(){
+    selected.clear(); $('q').value=''; $('aud').value=''; $('pan').checked=false;
+    document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+    render(); $('q').focus();
+  }
+  ['input','change'].forEach(ev=>{
+    $('q').addEventListener(ev,render);
+    $('aud').addEventListener(ev,render);
+    $('pan').addEventListener(ev,render);
+  });
+  $('reset').addEventListener('click',reset);
+  $('reset2').addEventListener('click',reset);
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+---
+import { STORAGE_KEY } from '../lib/inventory';
+// NOTE: no define:vars on the script below. define:vars implies is:inline, which
+// stops Astro bundling and emits raw `import` statements into the HTML pointing
+// at source paths absent from dist/. Config travels via data attributes instead.
+const partId = Astro.props.partId;
+const storageKey = STORAGE_KEY;
+---
+
+<div class="save-row" data-save-for={partId} data-storage-key={storageKey}>
+  <fieldset>
+    <legend>Track this part</legend>
+    <div class="opts">
+      <label>
+        <input type="radio" name={`intent-${partId}`} value="wanted" />
+        <span>Want</span>
+      </label>
+      <label>
+        <input type="radio" name={`intent-${partId}`} value="owned" />
+        <span>Own</span>
+      </label>
+    </div>
+  </fieldset>
+  <p class="save-msg" role="status" aria-live="polite"></p>
+</div>
+
+<style>
+  .save-row {
+    border: 1px solid var(--pd-hairline);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 26px;
+  }
+  fieldset { border: 0; margin: 0; padding: 0; }
+  legend {
+    font: 600 0.72rem var(--pd-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--pd-fg-muted);
+    padding: 0;
+    margin-bottom: 9px;
+  }
+  .opts { display: flex; gap: 9px; flex-wrap: wrap; }
+  .opts label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 17px;
+    border: 1px solid var(--pd-border);
+    border-radius: 8px;
+    cursor: pointer;
+    font: 600 0.9rem var(--pd-sans);
+    color: var(--pd-fg);
+  }
+  .opts label:hover { border-color: var(--pd-fg); }
+  .opts input { width: 18px; height: 18px; accent-color: var(--pd-accent); }
+  .opts label:has(input:checked) { background: var(--pd-raised); border-color: var(--pd-accent); }
+  .save-msg { margin: 10px 0 0; min-height: 1.3em; font: 0.82rem var(--pd-mono); color: var(--pd-fg-muted); }
+  @media print { .save-row { display: none; } }
+</style>
+
+<script>
+  import { STORAGE_KEY, loadInventory, saveInventory, addRecord } from '../lib/inventory';
+
+  for (const row of document.querySelectorAll<HTMLElement>('[data-save-for]')) {
+    const partId = row.dataset.saveFor;
+    const storageKey = row.dataset.storageKey ?? STORAGE_KEY;
+    if (!partId) continue;
+
+    const msg = row.querySelector<HTMLElement>('.save-msg');
+    const say = (t: string) => { if (msg) msg.textContent = t; };
+    const read = () => loadInventory({ getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) }, undefined);
+
+    // Reflect what is already saved.
+    const existing = read().records.find((r) => r.partId === partId);
+    if (existing) {
+      const hit = row.querySelector<HTMLInputElement>(`input[value="${existing.intent}"]`);
+      if (hit) hit.checked = true;
+      say(`In your inventory — ${existing.intent}. Change it above.`);
+    }
+
+    for (const radio of row.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
+      radio.addEventListener('change', () => {
+        const current = read().records.find((r) => r.partId === partId);
+        const res = addRecord(
+          read(),
+          partId,
+          radio.value === 'owned' ? 'owned' : 'wanted',
+          undefined,
+          current?.quantity ?? 1,
+          current?.note ?? '',
+        );
+        if (!res.ok) {
+          say(res.reason === 'quota-exceeded'
+            ? 'Inventory is full (500 items). Remove something first.'
+            : 'Could not save that part.');
+          return;
+        }
+        say(saveInventory({ getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) }, res.inventory)
+          ? `Saved as ${radio.value}. Manage it in your inventory.`
+          : 'Could not save — this browser is blocking local storage.');
+      });
+    }
+  }
+</script>

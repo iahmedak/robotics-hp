@@ -1,0 +1,58 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const {
+  title,
+  description = 'A community-maintained directory of Indian suppliers for robotics parts: motors, servos, sensors, controllers, batteries and more. No ads, no affiliate links.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="system">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0F1419" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)" />
+    <!--
+      Must run before first paint, otherwise a dark-mode user gets a flash of
+      the light theme. Kept inline and dependency-free on purpose.
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('projectdir.theme') || 'system';
+          document.documentElement.dataset.theme = t;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'system';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!--
+      First focusable element. The target carries tabindex="-1" or the browser
+      only scrolls and focus stays here — that was a real bug found in review.
+    -->
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <Header />
+
+    <!-- tabindex="-1" so the skip link moves FOCUS, not just the scroll position. -->
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>

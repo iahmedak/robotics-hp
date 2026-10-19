@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # test:browser drives the built site in headless Chromium. Without this
+      # the run fails with a confusing "browser not found" rather than saying
+      # what is missing, which is the usual reason this step gets dropped.
+      - run: npx playwright install --with-deps chromium
+
+      - name: Validate (typecheck, unit tests, build, bundle check, browser)
+        run: npm run validate
+
+      - name: Worker typecheck
+        run: npm run check:worker
+
+  fixtures:
+    # Informational, not gating. Fails when a supplier changes their feed
+    # shape, which is worth knowing about but is not our regression to fix in
+    # the same commit. The committed fixtures keep unit tests deterministic.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/capture-fixtures.mjs /tmp/fresh-fixtures
+      - name: Did any supplier feed change shape?
+        run: |
+          if ! diff -rq /tmp/fresh-fixtures workers/live/test/fixtures; then
+            echo "::notice::Supplier feeds changed shape. Run scripts/capture-fixtures.mjs and review the diff."
+          fi

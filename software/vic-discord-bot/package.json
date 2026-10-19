@@ -1,0 +1,25 @@
+{
+  "name": "vic-discord-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "VoltEdge Innovation Community (VIC) — Discord verification, role assignment and moderation bot.",
+  "main": "src/index.js",
+  "scripts": {
+    "provision": "node src/provision.js",
+    "start": "node src/index.js",
+    "healthcheck": "node src/healthcheck.js",
+    "test": "node test/smoke.js && node test/members.test.js && node test/layout.test.js && node test/mod.test.js && node test/welcome.test.js && node test/activity.test.js && node test/apply.test.js && node test/roleadmin.test.js",
+    "gate-divisions": "node src/gate-divisions.js",
+    "gate-divisions:dry": "node src/gate-divisions.js --dry",
+    "seed": "node src/seed.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5"
+  }
+}

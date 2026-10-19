@@ -1,0 +1,379 @@
+---
+import Base from '../layouts/Base.astro';
+import categoriesRaw from '../data/categories.json';
+import vendorsRaw from '../data/vendors.json';
+import {
+  validateCategories, validateVendors,
+  type Category, type Vendor,
+} from '../lib/schema';
+
+const c = validateCategories(categoriesRaw);
+const v = validateVendors(vendorsRaw, c.data ?? []);
+if (!c.ok) throw new Error(`categories.json invalid:\n - ${c.errors.join('\n - ')}`);
+if (!v.ok) throw new Error(`vendors.json invalid:\n - ${v.errors.join('\n - ')}`);
+
+const categories = c.data as Category[];
+const vendors = v.data as Vendor[];
+
+const byCat = Object.fromEntries(categories.map((x) => [x.id, x.label]));
+---
+
+<Base title="Suppliers — PROJECTdir">
+  <div class="wrap">
+    <h1>Suppliers</h1>
+    <p class="lede">
+      {vendors.length} Indian suppliers. Select several categories to narrow to suppliers
+      stocking <em>all</em> of them.
+    </p>
+
+    <form id="filters" role="search">
+      <div class="field">
+        <label class="lbl" for="q">Search</label>
+        <input id="q" type="search" placeholder="Name, city or category" autocomplete="off" />
+      </div>
+
+      <fieldset>
+        <legend class="legend">Categories</legend>
+        <div class="chips" id="chips">
+          {
+            categories.map((cat) => (
+              <button type="button" class="chip" aria-pressed="false" data-id={cat.id}>
+                {cat.label}
+              </button>
+            ))
+          }
+        </div>
+      </fieldset>
+
+      <div class="toolbar">
+        <label class="check" for="pan">
+          <input type="checkbox" id="pan" />
+          Ships across India only
+        </label>
+        <button type="button" class="btn" id="reset">Clear all filters</button>
+      </div>
+    </form>
+
+    <p class="count" id="count" role="status" aria-live="polite"></p>
+    <ul class="grid" id="grid"></ul>
+
+    <div class="empty" id="empty" hidden>
+      <h2>No supplier stocks that combination</h2>
+      <p>Try removing a category, or <a href="/submit">suggest a supplier</a> we are missing.</p>
+      <button type="button" class="btn primary" id="reset2">Clear all filters</button>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  h1 {
+    font: 700 clamp(1.9rem, 4.5vw, 2.8rem) / 1.1 var(--pd-serif);
+    margin: 0 0 12px;
+    letter-spacing: -0.015em;
+  }
+  .lede {
+    max-width: 58ch;
+    color: var(--pd-fg-muted);
+    margin: 0 0 26px;
+  }
+  .lbl,
+  .legend {
+    display: block;
+    font: 600 0.78rem var(--pd-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    color: var(--pd-fg-muted);
+    padding: 0;
+  }
+  input[type='search'] {
+    width: 100%;
+    min-height: 48px;
+    font: inherit;
+    padding: 12px 14px;
+    border: 1px solid var(--pd-border);
+    border-radius: 8px;
+    background: var(--pd-surface);
+    color: var(--pd-fg);
+  }
+  fieldset {
+    border: 0;
+    margin: 22px 0 0;
+    padding: 0;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 1px solid var(--pd-border);
+    border-radius: 999px;
+    background: var(--pd-surface);
+    color: var(--pd-fg);
+    font: 500 0.92rem var(--pd-sans);
+    cursor: pointer;
+  }
+  .chip:hover {
+    background: var(--pd-accent-soft);
+  }
+  .chip[aria-pressed='true'] {
+    background: var(--pd-accent);
+    border-color: var(--pd-accent);
+    color: var(--pd-accent-ink);
+  }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    cursor: pointer;
+    color: var(--pd-fg);
+  }
+  .check input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--pd-accent);
+  }
+  .btn {
+    min-height: 44px;
+    padding: 8px 18px;
+    border: 1px solid var(--pd-border);
+    border-radius: 8px;
+    background: var(--pd-surface);
+    color: var(--pd-fg);
+    font: 600 0.92rem var(--pd-sans);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn:hover {
+    background: var(--pd-raised);
+  }
+  .btn.primary {
+    background: var(--pd-fg);
+    color: var(--pd-bg);
+    border-color: var(--pd-fg);
+  }
+  .count {
+    font: 600 0.9rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+    margin: 26px 0 16px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
+    gap: 18px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .vendor {
+    background: var(--pd-surface);
+    border: 1px solid var(--pd-border);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+  }
+  .vendor h2 {
+    font: 700 1.28rem var(--pd-serif);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .meta {
+    font: 0.82rem var(--pd-mono);
+    color: var(--pd-fg-muted);
+  }
+  .vendor p {
+    margin: 0;
+    color: var(--pd-fg-muted);
+    flex: 1;
+    font-size: 0.95rem;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tags li {
+    font: 0.76rem var(--pd-mono);
+    background: var(--pd-accent-soft);
+    border-radius: 4px;
+    padding: 3px 8px;
+    color: var(--pd-fg);
+  }
+  .tags li.more {
+    background: none;
+    color: var(--pd-fg-muted);
+    padding: 3px 4px;
+  }
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .badge {
+    font: 0.72rem var(--pd-mono);
+    border: 1px solid var(--pd-border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    color: var(--pd-fg-muted);
+  }
+  .badge.moq {
+    color: var(--pd-warn);
+    border-color: var(--pd-warn);
+    background: var(--pd-warn-bg);
+  }
+  .visit {
+    font-weight: 600;
+    color: var(--pd-accent);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+  .visit:hover {
+    text-decoration: underline;
+  }
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    border: 1px dashed var(--pd-border);
+    border-radius: 10px;
+    background: var(--pd-surface);
+  }
+  .empty[hidden] {
+    display: none;
+  }
+  .empty h2 {
+    font: 700 1.35rem var(--pd-serif);
+    margin: 0 0 8px;
+  }
+</style>
+
+
+<script type="application/json" id="vendor-data" set:html={JSON.stringify({ vendors, CAT: byCat }).replace(/</g, '\u003c')} />
+
+<script>
+  // NOTE: deliberately NOT define:vars. define:vars implies is:inline, which
+  // stops Astro bundling and leaves `import` statements in the output HTML
+  // pointing at source paths that do not exist in dist/. Data arrives via the
+  // JSON tag above instead; this block is a normal bundled module.
+  import { filterSuppliers, wholesaleLabel } from '../lib/filter';
+  import { escapeHtml } from '../lib/html';
+  import type { Vendor } from '../lib/schema';
+
+  interface Payload {
+    vendors: Vendor[];
+    CAT: Record<string, string>;
+  }
+
+  const { vendors: DATA, CAT } = JSON.parse(
+    document.getElementById('vendor-data')!.textContent!,
+  ) as Payload;
+
+  const MAX_TAGS = 4;
+  const esc = escapeHtml;
+  // Fail loudly at wiring time rather than null-dereferencing on first click.
+  const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
+    const el = document.getElementById(id);
+    if (!el) throw new Error(`suppliers.astro: missing #${id}`);
+    return el as T;
+  };
+  const selected = new Set<string>();
+
+  function wholesaleBadge(v: Vendor) {
+    const w = v.wholesale;
+    const label = wholesaleLabel(v);
+    if (!label) return '';
+    return `<span class="badge${w.mode === 'procurement' ? ' moq' : ''}">${esc(label)}</span>`;
+  }
+
+  function render() {
+    const list = filterSuppliers(
+      DATA,
+      { query: $<HTMLInputElement>('q').value, categories: [...selected], panIndiaOnly: $<HTMLInputElement>('pan').checked },
+      CAT,
+    );
+
+    $('grid').innerHTML = list
+      .map((v) => {
+        const shown = v.categories.slice(0, MAX_TAGS);
+        const rest = v.categories.length - shown.length;
+        const tags =
+          shown.map((c) => `<li>${esc(CAT[c] || c)}</li>`).join('') +
+          (rest > 0 ? `<li class="more">+${rest} more</li>` : '');
+
+        const noCatalog = !v.search.enabled;
+
+        return `<li><article class="vendor">
+          <h2>${esc(v.name)}</h2>
+          <div class="meta">${esc(v.city || 'Online')}${esc(v.state ? ', ' + v.state : '')}${
+            v.shipsPanIndia ? ' \u00b7 Ships across India' : ''
+          }</div>
+          <p>${esc(v.blurb)}</p>
+          <ul class="tags" aria-label="${v.categories.length} categories">${tags}</ul>
+          <div class="badges">${wholesaleBadge(v)}${
+            noCatalog ? '<span class="badge">No online catalogue</span>' : ''
+          }</div>
+          <a class="visit" href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">
+            Visit ${esc(v.name)}<span aria-hidden="true">&nbsp;&rarr;</span><span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </article></li>`;
+      })
+      .join('');
+
+    $('empty').hidden = list.length > 0;
+    $('count').textContent =
+      list.length === 1 ? '1 supplier matches' : list.length + ' suppliers match';
+  }
+
+  function reset() {
+    selected.clear();
+    $<HTMLInputElement>('q').value = '';
+    $<HTMLInputElement>('pan').checked = false;
+    document.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
+    render();
+    $('q').focus();
+  }
+
+  $('chips').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement | null)?.closest<HTMLElement>('.chip');
+    const id = b?.dataset.id;
+    if (!id) return;
+    selected.has(id) ? selected.delete(id) : selected.add(id);
+    b.setAttribute('aria-pressed', String(selected.has(id)));
+    render();
+  });
+
+  ['input', 'change'].forEach((ev) => {
+    $('q').addEventListener(ev, render);
+    $<HTMLInputElement>('pan').addEventListener(ev, render);
+  });
+  $('reset').addEventListener('click', reset);
+  $('reset2').addEventListener('click', reset);
+  render();
+</script>

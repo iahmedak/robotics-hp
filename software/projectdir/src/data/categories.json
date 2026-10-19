@@ -1,0 +1,34 @@
+﻿[
+  { "id": "servos",            "label": "Servos",              "group": "actuation",   "order": 1,  "specKeys": ["torqueNm", "voltage", "interface", "formFactor", "feedback"] },
+  { "id": "gearmotors",        "label": "Gearmotors",          "group": "actuation",   "order": 2,  "specKeys": ["torqueNm", "rpm", "voltage", "gearboxRatio", "encoder"] },
+  { "id": "stepper-motors",    "label": "Stepper Motors",      "group": "actuation",   "order": 3,  "specKeys": ["frame", "holdingTorqueNm", "stepAngleDeg", "shaftDiaMm", "current"] },
+  { "id": "dc-motors",         "label": "DC Motors",           "group": "actuation",   "order": 4,  "specKeys": ["rpm", "voltage", "torqueNm", "shaftDiaMm"] },
+  { "id": "bldc-motors",       "label": "BLDC Motors",         "group": "actuation",   "order": 5,  "specKeys": ["kv", "voltage", "torqueNm", "encoder", "current"] },
+  { "id": "linear-actuators",  "label": "Linear Actuators",    "group": "actuation",   "order": 6,  "specKeys": ["strokeMm", "forceN", "voltage", "speed"] },
+  { "id": "pneumatic",         "label": "Pneumatic",           "group": "actuation",   "order": 7,  "specKeys": ["boreMm", "pressureBar", "strokeMm"] },
+
+  { "id": "bearings",          "label": "Bearings",            "group": "transmission","order": 8,  "specKeys": ["innerDiaMm", "outerDiaMm", "widthMm", "type"] },
+  { "id": "gears",             "label": "Gears",               "group": "transmission","order": 9,  "specKeys": ["teeth", "module", "boreDiaMm", "material"] },
+  { "id": "gearboxes",         "label": "Gearboxes",           "group": "transmission","order": 10, "specKeys": ["ratio", "maxTorqueNm", "outputShaftDiaMm", "backlashDeg"] },
+  { "id": "belts-couplings",   "label": "Belts & Couplings",   "group": "transmission","order": 11, "specKeys": ["profile", "lengthMm", "boreDiaMm"] },
+  { "id": "lead-screws",       "label": "Lead Screws",         "group": "transmission","order": 12, "specKeys": ["leadMm", "lengthMm", "shaftDiaMm"] },
+
+  { "id": "encoders",          "label": "Encoders",            "group": "sensing",     "order": 13, "specKeys": ["resolution", "shaftDiaMm", "outputType", "voltage"] },
+  { "id": "force-torque",      "label": "Force / Torque",      "group": "sensing",     "order": 14, "specKeys": ["range", "interface", "voltage"] },
+  { "id": "proximity-limits",  "label": "Proximity & Limits",  "group": "sensing",     "order": 15, "specKeys": ["type", "rangeMm", "outputType", "voltage"] },
+  { "id": "imus",              "label": "IMUs",                "group": "sensing",     "order": 16, "specKeys": ["dof", "interface", "rateHz"] },
+  { "id": "cameras-lidar",     "label": "Cameras & LiDAR",     "group": "sensing",     "order": 17, "specKeys": ["resolution", "fps", "rangeM", "interface"] },
+  { "id": "sensors",           "label": "Sensor Modules",      "group": "sensing",     "order": 18, "specKeys": ["type", "rangeMm", "outputType", "voltage", "interface"] },
+
+  { "id": "microcontrollers",  "label": "Microcontrollers",    "group": "control",     "order": 19, "specKeys": ["core", "clockMhz", "pins", "interface"] },
+  { "id": "motor-drives",      "label": "Motor Drives",        "group": "control",     "order": 20, "specKeys": ["voltage", "current", "protocol", "feedback"] },
+  { "id": "plc-io",            "label": "PLC & IO",            "group": "control",     "order": 21, "specKeys": ["channels", "voltage", "protocol"] },
+
+  { "id": "power-supplies",    "label": "Power Supplies",      "group": "power",       "order": 22, "specKeys": ["wattage", "inputVac", "outputDc"] },
+  { "id": "batteries",         "label": "Batteries",           "group": "power",       "order": 23, "specKeys": ["chemistry", "cells", "voltage", "capacityAh"] },
+
+  { "id": "aluminium-profile", "label": "Aluminium Profile",   "group": "structure",   "order": 24, "specKeys": ["size", "lengthMm", "slot"] },
+  { "id": "linear-guides",     "label": "Linear Guides",       "group": "structure",   "order": 25, "specKeys": ["railSize", "lengthMm", "loadRating"] },
+  { "id": "fasteners",         "label": "Fasteners",           "group": "structure",   "order": 26, "specKeys": ["thread", "lengthMm", "material", "grade"] },
+  { "id": "brackets-plates",   "label": "Brackets & Plates",   "group": "structure",   "order": 27, "specKeys": ["material", "dimensions", "thicknessMm"] }
+]

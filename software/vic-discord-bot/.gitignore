@@ -1,0 +1,14 @@
+# Secrets — never commit
+.env
+.env.runtime
+.env.local
+
+# node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+# Warning records contain user identifiers
+.data/

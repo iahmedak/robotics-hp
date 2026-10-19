@@ -1,0 +1,16 @@
+name = "projectdir-offers"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# Create with:  npx wrangler kv namespace create OFFERS
+# then paste the returned id below.
+[[kv_namespaces]]
+binding = "OFFERS"
+id = "REPLACE_ME"
+
+# Every 6 hours, off the hour so we do not collide with everyone else's cron.
+[triggers]
+crons = ["17 */6 * * *"]
+
+[observability]
+enabled = true

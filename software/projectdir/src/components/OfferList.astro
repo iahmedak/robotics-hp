@@ -1,0 +1,201 @@
+---
+import type { CanonicalPart, Vendor } from '../lib/schema';
+import { PartImage } from './PartImage.astro';
+import { escapeHtml } from '../lib/html';
+
+/**
+ * Live offers for one part, degrading to the static vendor list.
+ *
+ * Three invariants this component exists to hold:
+ *  1. The static vendor list is always rendered. It is the floor, never a
+ *     subset, so an unreachable or unconfigured Worker cannot blank a page.
+ *  2. No price is ever shown without a source. Prices are attributed to the
+ *     supplier by name and never presented as ours.
+ *  3. A fallback link reads as a search, not as the product. A user must
+ *     never be told a search box is the exact thing they asked for.
+ */
+interface Props {
+  part: CanonicalPart;
+  vendors: Vendor[];
+}
+
+const { part, vendors } = Astro.props;
+
+const vendorIndex = new Map(vendors.map((v) => [v.slug, v]));
+// Resolved up front for exactly that reason: a map callback in the
+// template that bails out with a null renders an empty list in Astro.
+// Resolved up front for exactly that reason.
+const listed = part.vendors
+  .map((slug) => ({ slug, vendor: vendorIndex.get(slug) }))
+  .filter((e): e is { slug: string; vendor: Vendor } => e.vendor !== undefined);
+const apiBase = import.meta.env.PUBLIC_LIVE_API ?? '';
+// The client must be able to reconstruct the FULL vendor list, or a partial
+// Worker response erases the vendors the Worker could not fetch.
+// Shaped like Vendor, because mergeOffers reads vendor.search.platform.
+const vendorData = vendors.map((v) => ({
+  slug: v.slug,
+  name: v.name,
+  url: v.url,
+  search: { platform: v.search.platform },
+}));
+---
+
+<section class="offer-section" aria-labelledby="offers-h" data-part-id={part.id} data-api-base={apiBase} data-part-name={part.canonicalName} data-part-vendors={JSON.stringify(part.vendors)} data-vendor-data={JSON.stringify(vendorData)}>
+  <h2 id="offers-h">Where to buy</h2>
+
+  <!--
+    Static floor. Server-rendered, so it is present before any script runs and
+    survives a total failure of the offers fetch.
+  -->
+  <ul class="offer-list offer-list--static">
+    {
+      listed.map(({ slug, vendor: v }) => (
+        <li class="offer-card" data-vendor={slug}>
+          <div class="offer-head">
+            <h3>{v.name}</h3>
+            <span class="offer-meta">{v.city}{v.state ? `, ${v.state}` : ''}</span>
+          </div>
+          <a class="offer-link" href={v.url} target="_blank" rel="noopener noreferrer">
+            Visit {v.name}
+            <span aria-hidden="true">&nbsp;&rarr;</span>
+            <span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="offer-status" id="offer-status" role="status" aria-live="polite" hidden></p>
+  <p class="offer-stale" id="offer-stale" hidden></p>
+</section>
+
+<style>
+  .offer-section { margin-top: 28px; }
+  h2 { font: 700 1.35rem var(--pd-serif); margin: 0 0 14px; }
+  .offer-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .offer-card { border: 1px solid var(--pd-hairline); border-radius: 10px; padding: 14px 16px; }
+  .offer-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .offer-head h3 { font: 600 1.02rem var(--pd-serif); margin: 0; color: var(--pd-fg); }
+  .offer-meta { font: 0.82rem var(--pd-mono); color: var(--pd-fg-muted); }
+  .offer-body { display: flex; gap: 14px; align-items: flex-start; margin-top: 10px; }
+  .offer-title { margin: 0 0 4px; font-size: 0.95rem; color: var(--pd-fg); }
+  .offer-price { margin: 0; font: 600 1rem var(--pd-mono); color: var(--pd-fg); }
+  .offer-price small { font-weight: 400; color: var(--pd-fg-muted); }
+  .offer-stock { margin: 4px 0 0; font: 0.84rem var(--pd-mono); color: var(--pd-fg-muted); }
+  .offer-stock.out { color: var(--pd-warn); }
+  .offer-link {
+    display: inline-flex; align-items: center; min-height: 44px; margin-top: 10px;
+    color: var(--pd-accent); font-weight: 600; text-decoration: none;
+  }
+  .offer-link:hover { text-decoration: underline; }
+  /* A fallback must LOOK different from a deep link. */
+  .offer-fallback { border-style: dashed; }
+  .offer-fallback .offer-link { color: var(--pd-fg); }
+  .offer-status { font: 0.86rem var(--pd-mono); color: var(--pd-fg-muted); margin: 12px 0 0; }
+  .offer-stale { font: 0.82rem var(--pd-mono); color: var(--pd-warn); margin: 8px 0 0; }
+  @media (max-width: 520px) {
+    .offer-body { flex-direction: column; }
+  }
+</style>
+
+<script>
+  // A plain bundled script on purpose. define:vars implies is:inline, which
+  // stops Astro bundling and leaves this import in the HTML pointing at a
+  // source path absent from dist/. Config arrives via data attributes instead.
+import { mergeOffers, isStale, type Offer, type MergedOffer } from '../lib/offers';
+  import type { CanonicalPart, Vendor } from '../lib/schema';
+
+  const root = document.getElementById('offers-h')!.closest('section')!;
+
+  // The client must be able to reconstruct the FULL vendor list. Rendering only
+  // the Worker's offers erased every vendor the Worker could not fetch, which
+  // made the entire fallback path unreachable code.
+  const PART_VENDORS: string[] = JSON.parse(root.dataset.partVendors ?? '[]');
+  const VENDOR_LIST: Vendor[] = JSON.parse(root.dataset.vendorData ?? '[]');
+  const VENDOR_MAP = new Map(VENDOR_LIST.map((v) => [v.slug, v]));
+  const PART = {
+    id: root.dataset.partId ?? '',
+    canonicalName: root.dataset.partName ?? '',
+    aliases: [],
+    category: '',
+    specs: {},
+    vendors: PART_VENDORS,
+  } as unknown as CanonicalPart;
+
+  const partId = root.dataset.partId!;
+  const list = root.querySelector<HTMLUListElement>('.offer-list--static')!;
+
+  const esc = (s: string): string =>
+    String(s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+    );
+
+  function render(entries: MergedOffer[], fetchedAt: string): void {
+    list.innerHTML = entries
+      .map(({ offer, isFallback }: { offer: Offer; isFallback: boolean }) => {
+        const price = offer.price
+          ? `<p class="offer-price">${esc(offer.price.formatted)} <small>as listed by ${esc(offer.vendorName)}</small></p>`
+          : '';
+        const stock =
+          offer.inStock === false
+            ? '<p class="offer-stock out">Currently unavailable</p>'
+            : '';
+        const cta = isFallback
+          ? `Search ${esc(offer.vendorName)} for this part`
+          : `View at ${esc(offer.vendorName)}`;
+        return `<li class="offer-card ${isFallback ? 'offer-fallback' : ''}" data-vendor="${esc(offer.vendorSlug)}">
+          <div class="offer-head">
+            <h3>${esc(offer.vendorName)}</h3>
+            <span class="offer-meta">${isFallback ? 'Search link' : 'Direct product link'}</span>
+          </div>
+          <div class="offer-body">
+            <div>
+              <p class="offer-title">${esc(offer.title)}</p>
+              ${price}${stock}
+            </div>
+          </div>
+          <a class="offer-link" href="${esc(offer.url)}" target="_blank" rel="noopener noreferrer">
+            ${cta}<span aria-hidden="true">&nbsp;&rarr;</span><span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </li>`;
+      })
+      .join('');
+
+    if (isStale(fetchedAt)) {
+      const stale = root.querySelector<HTMLElement>('.offer-stale')!;
+      stale.hidden = false;
+      stale.textContent = `Live prices last updated ${new Date(fetchedAt).toLocaleDateString('en-IN')}`;
+    }
+  }
+
+  // Build-time value in production. The window override exists so the browser
+  // suite can exercise the live path against a stub without rebuilding.
+  const apiBase =
+    root.dataset.apiBase || (globalThis as any).__PROJECTDIR_OFFERS_API__ || '';
+
+  if (apiBase) {
+    const controller = new AbortController();
+    // A slow Worker must never hold the page hostage; the static list is
+    // already on screen and stays valid.
+    const timer = setTimeout(() => controller.abort(), 6000);
+    fetch(`${apiBase.replace(/\/$/, '')}/offers?part=${encodeURIComponent(partId)}`, {
+      signal: controller.signal,
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data: { offers?: unknown[]; fetchedAt?: string }) => {
+        const offers = Array.isArray(data.offers) ? (data.offers as Offer[]) : [];
+        if (!offers.length) return; // leave the static list alone
+        // Merge, never replace. Replacing erased every vendor the Worker could
+        // not fetch, so the fallback path could never render at all.
+        render(
+          mergeOffers(offers, PART, VENDOR_MAP),
+          data.fetchedAt ?? new Date().toISOString(),
+        );
+      })
+      .catch(() => {
+        // Silent by design. The static list already rendered and is accurate
+        // as far as it goes; an error banner would only alarm the visitor.
+      })
+      .finally(() => clearTimeout(timer));
+  }
+</script>

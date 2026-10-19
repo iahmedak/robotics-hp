@@ -1,0 +1,13 @@
+{
+  "name": "projectdir-offers-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy",
+    "kv:create": "wrangler kv namespace create OFFERS"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0"
+  }
+}
